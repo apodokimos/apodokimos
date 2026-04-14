@@ -1,0 +1,98 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor/IDE files
+.vscode/
+.idea/
+.windsurf/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Backup files
+*.bak
+*.backup
+
+# Rust / Cargo
+/target/
+**/target/
+Cargo.lock
+*.rlib
+*.rmeta
+*.pdb
+*.so
+*.dylib
+*.dll
+*.exe
+**/*.rs.bk
+
+# Rust tooling
+/cargo-deny-cache/
+.cargo/registry/
+.cargo/git/
+
+# Node.js / pnpm / TypeScript
+node_modules/
+**/node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnp.*
+.yarn/
+.yarnrc
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Substrate / blockchain
+/chains/
+**/.local/
+*.db
+*.db-shm
+*.db-wal
+paritydb/
+
+# Arweave / wallets (security sensitive)
+*.key.json
+*.wallet.json
+arweave-key*.json
+*.jwk
+arweave-wallet*
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+.envrc
+*.pem
+*.key
+secrets/
+
+# CI artifacts
+/coverage-reports/
+/test-results/
+*.profraw
+
+# Generated documentation
+target/doc/
+/docs/generated/
