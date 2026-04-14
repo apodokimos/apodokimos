@@ -1,0 +1,24 @@
+# CODEOWNERS — Apodokimos Governance
+# DID-based maintainer references per project policy (no real names)
+
+# Global default
+*       did:apodokimos:sha888
+
+# Repository governance files
+LICENSE*    did:apodokimos:sha888
+CODEOWNERS  did:apodokimos:sha888
+*.md        did:apodokimos:sha888
+
+# CI/CD and security configuration
+.github/        did:apodokimos:sha888
+SECURITY.md     did:apodokimos:sha888
+
+# Cargo workspace root
+Cargo.toml          did:apodokimos:sha888
+rust-toolchain.toml did:apodokimos:sha888
+
+# pnpm workspace root
+pnpm-workspace.yaml did:apodokimos:sha888
+
+# Field schemas (clinical medicine bootstrap)
+fields/         did:apodokimos:sha888

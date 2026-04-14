@@ -12,15 +12,15 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ### Repository & Governance
 
-- [ ] F-01 — Create GitHub org `apodokimos`
-- [ ] F-02 — Create monorepo `apodokimos/apodokimos` with branch protection on `main`
-- [ ] F-03 — Write `LICENSE-AGPL` (AGPL-3.0) at repo root
-- [ ] F-04 — Write `LICENSE-APACHE` (Apache-2.0) at repo root
-- [ ] F-05 — Write `LICENSE-CC0` at repo root
-- [ ] F-06 — Add `CODEOWNERS` with initial maintainer DID references (no real names)
-- [ ] F-07 — Write `CONTRIBUTING.md` — contribution process, DCO sign-off requirement
-- [ ] F-08 — Write `SECURITY.md` — responsible disclosure policy
-- [ ] F-09 — Write `CODE_OF_CONDUCT.md` — Contributor Covenant 2.1
+- [x] F-01 — Create GitHub org `apodokimos`
+- [x] F-02 — Create monorepo `apodokimos/apodokimos` with branch protection on `main`
+- [x] F-03 — Write `LICENSE-AGPL` (AGPL-3.0) at repo root
+- [x] F-04 — Write `LICENSE-APACHE` (Apache-2.0) at repo root
+- [x] F-05 — Write `LICENSE-CC0` at repo root
+- [x] F-06 — Add `CODEOWNERS` with initial maintainer DID references (no real names)
+- [x] F-07 — Write `CONTRIBUTING.md` — contribution process, DCO sign-off requirement
+- [x] F-08 — Write `SECURITY.md` — responsible disclosure policy
+- [x] F-09 — Write `CODE_OF_CONDUCT.md` — Contributor Covenant 2.1
 
 ### Workspace Scaffold
 
@@ -28,7 +28,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [ ] F-11 — Add `rust-toolchain.toml` pinned to latest stable channel
 - [ ] F-12 — Add `.cargo/config.toml` — `cargo-deny` configuration, target settings
 - [ ] F-13 — Init `pnpm-workspace.yaml` for `sdk-ts`
-- [ ] F-14 — Add `.gitignore` covering Rust, Node, IDE artifacts
+- [x] F-14 — Add `.gitignore` covering Rust, Node, IDE artifacts
 - [ ] F-15 — Add `cargo install cargo-skill` to developer setup docs
 - [ ] F-16 — Add `cargo install cargo-audit` to developer setup docs
 - [ ] F-17 — Add `cargo install cargo-deny` to developer setup docs
