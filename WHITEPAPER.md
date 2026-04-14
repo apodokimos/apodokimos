@@ -3,6 +3,7 @@
 **Version:** wp-v0.1  
 **Status:** Draft  
 **License:** CC0-1.0  
+**Site:** https://apodokimos.science (TBD)
 **Repository:** https://github.com/apodokimos/apodokimos  
 
 ---
