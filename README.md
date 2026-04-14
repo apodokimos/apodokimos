@@ -6,6 +6,10 @@ Apodokimos is a decentralized Epistemic Contribution Graph (ECG) protocol that r
 
 The Journal Impact Factor measures citation velocity inside a prestige economy. Apodokimos measures whether claims are true, whether they survived falsification, and whether reality changed because of them.
 
+Website — https://apodokimos.science (TBD)
+
+Repository: https://github.com/apodokimos/apodokimos
+
 ---
 
 ## The Problem
