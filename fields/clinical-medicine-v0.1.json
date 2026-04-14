@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Apodokimos Clinical Medicine Field Schema",
+  "schema_version": "0.1.0",
+  "license": "CC0-1.0",
+  "field_id": "clinical-medicine",
+  "description": "P-12: PICO claim schema for clinical medicine bootstrap (WHITEPAPER.md §11.2)",
+
+  "claim_template": {
+    "population": {
+      "type": "string",
+      "description": "Patient population or study participants",
+      "required": true,
+      "examples": [
+        "Adults aged 18-65 with type 2 diabetes",
+        "Patients with moderate-to-severe depression (PHQ-9 ≥ 15)"
+      ]
+    },
+    "intervention": {
+      "type": "string",
+      "description": "Intervention, exposure, or treatment",
+      "required": true,
+      "examples": [
+        "Metformin 1000mg twice daily",
+        "Cognitive behavioral therapy (12 sessions)"
+      ]
+    },
+    "comparator": {
+      "type": "string",
+      "description": "Control or comparison group",
+      "required": false,
+      "examples": [
+        "Placebo",
+        "Standard of care",
+        "No intervention"
+      ]
+    },
+    "outcome": {
+      "type": "string",
+      "description": "Primary outcome measure",
+      "required": true,
+      "examples": [
+        "HbA1c reduction at 6 months",
+        "Hamilton Depression Rating Scale (HDRS) score change"
+      ]
+    },
+    "effect_direction": {
+      "type": "string",
+      "description": "Direction of observed effect",
+      "required": true,
+      "enum": ["positive", "negative", "null", "mixed"],
+      "enumDescriptions": {
+        "positive": "Intervention shows beneficial effect",
+        "negative": "Intervention shows harmful effect",
+        "null": "No detectable effect difference",
+        "mixed": "Effects vary across subgroups"
+      }
+    },
+    "effect_size": {
+      "type": "number",
+      "description": "Point estimate of effect size",
+      "required": false
+    },
+    "confidence_interval": {
+      "type": "array",
+      "description": "[lower_bound, upper_bound] for effect size",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "number" },
+      "required": false
+    },
+    "trial_registry_id": {
+      "type": "string",
+      "description": "P-13: ClinicalTrials.gov NCT number or equivalent trial registry ID",
+      "required": false,
+      "pattern": "^NCT[0-9]{8}$",
+      "examples": ["NCT04169511", "NCT01234567"]
+    },
+    "prospero_id": {
+      "type": "string",
+      "description": "P-14: PROSPERO systematic review registration ID",
+      "required": false,
+      "pattern": "^CRD420[0-9]{8}$",
+      "examples": ["CRD42020123456"]
+    },
+    "evidence_level": {
+      "type": "string",
+      "description": "GRADE or similar evidence quality rating",
+      "required": false,
+      "enum": ["high", "moderate", "low", "very-low"]
+    }
+  },
+
+  "o_factor_oracles": {
+    "description": "Oracle mappings for real-world outcome linkage",
+    "clinicaltrials_gov": {
+      "description": "P-13: Trial registry oracle mapping",
+      "input": "trial_registry_id (NCT number)",
+      "endpoint": "https://clinicaltrials.gov/api/v2/studies/{nct_id}",
+      "score_mapping": {
+        "registered_not_completed": 0.3,
+        "completed_results_posted": 0.6,
+        "completed_published_consistent": 0.9,
+        "completed_inconsistent": 0.1
+      },
+      "validation_rules": [
+        "NCT ID format must match ^NCT[0-9]{8}$",
+        "Trial must exist in registry",
+        "Results posting date must be verifiable"
+      ]
+    },
+    "prospero": {
+      "description": "P-14: Systematic review registry oracle mapping",
+      "input": "prospero_id",
+      "endpoint": "https://www.crd.york.ac.uk/prospero/DisplayRecord.php?RecordID={id}",
+      "score_mapping": {
+        "protocol_registered": 0.2,
+        "review_completed_published": 0.7,
+        "meta_analysis_supports": 0.9,
+        "meta_analysis_contradicts": 0.1
+      },
+      "validation_rules": [
+        "PROSPERO ID format must match ^CRD420[0-9]{8}$",
+        "Review must be registered in PROSPERO"
+      ]
+    },
+    "aggregation_rule": "O = max(source_scores) — take highest score from available oracles"
+  },
+
+  "field_parameters": {
+    "description": "P-16: Field normalization parameters",
+    "time_decay_constant": {
+      "description": "λ_field for clinical medicine — faster decay for rapidly evolving evidence",
+      "lambda": 0.5,
+      "half_life_months": "~14 months (faster than mathematics, slower than molecular biology)"
+    },
+    "normalization_coefficient": {
+      "description": "P-16: Baseline USI (Unit of Scientific Impact) calibration",
+      "baseline_usi": 1.0,
+      "calibration_method": "Running mean of W across all clinical medicine claims at time t",
+      "formula": "W_norm(c, t) = W(c, t) / μ_clinical_medicine(t)"
+    },
+    "replication_thresholds": {
+      "minimum_replications_for_high_confidence": 3,
+      "minimum_replications_for_certainty": 5
+    }
+  },
+
+  "claim_type_mapping": {
+    "description": "Recommended ClaimType for different PICO configurations",
+    "PrimaryClaim": {
+      "description": "Novel intervention-outcome relationship",
+      "conditions": ["new intervention", "no prior systematic reviews"]
+    },
+    "Replication": {
+      "description": "Independent confirmation of prior Result",
+      "conditions": ["trial_registry_id exists", "prior claims with same I-C-O"]
+    },
+    "NullResult": {
+      "description": "No detectable effect",
+      "conditions": ["effect_direction = null", "adequately powered study"]
+    }
+  }
+}

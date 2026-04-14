@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Apodokimos Weight Function Specification",
+  "schema_version": "0.1.0",
+  "license": "CC0-1.0",
+  "source": "WHITEPAPER.md §3",
+  "description": "Machine-readable specification for W(c,t) = R(t) × D × S × O (P-03 to P-07)",
+
+  "weight_function": {
+    "description": "P-03: Core epistemic weight formula",
+    "formula": "W(c, t) = R(c, t) × D(c) × S(c) × O(c)",
+    "domain": {
+      "W": "[0, ∞) — epistemic weight of claim c at time t",
+      "R": "[0, 1] — replication score with time decay",
+      "D": "[0, ∞) — dependency depth (ancestor count)",
+      "S": "(0, 1] — survival rate (supporting / non-Mentions)",
+      "O": "{0} ∪ [0.1, 1.0] — real-world outcome linkage"
+    },
+    "normalization": {
+      "description": "Per-field normalization for comparison",
+      "formula": "W_norm(c, t, field) = W(c, t) / μ_field(t)",
+      "mu_field": "Running mean W across all claims in same field at time t"
+    }
+  },
+
+  "R_factor": {
+    "description": "P-04: Replication score with field-calibrated time decay",
+    "formula": "R(c, t) = Σ w_decay(t - a.block, λ_field) / (|Replicates| + |Refutes| + ε)",
+    "components": {
+      "time_decay": {
+        "function": "w_decay(Δt, λ) = e^(-λ × Δt)",
+        "lambda_field": "Field-specific decay constant",
+        "examples": {
+          "fast_cycle_fields": { "molecular_biology": "high λ", "clinical_trials": "high λ" },
+          "slow_cycle_fields": { "mathematics": "low λ", "geology": "low λ" }
+        }
+      },
+      "epsilon": {
+        "description": "Small positive constant preventing division by zero",
+        "value": "1e-6"
+      }
+    }
+  },
+
+  "D_factor": {
+    "description": "P-05: Dependency depth — DAG traversal specification",
+    "formula": "D(c) = |{c' ∈ C : c ∈ ancestors(c')} |",
+    "algorithm": {
+      "name": "Transitive closure of dependency relation",
+      "steps": [
+        "Build adjacency list from claims.depends_on",
+        "For each claim c, perform DFS/BFS to find all transitive dependents",
+        "D(c) = count of claims that depend on c directly or transitively"
+      ],
+      "complexity": "O(V + E) per query with memoization",
+      "cycle_check": "Performed at registration: reject if c ∈ ancestors(c) for any dependency"
+    },
+    "rationale": "Captures structural importance independent of citation velocity"
+  },
+
+  "S_factor": {
+    "description": "P-06: Survival rate — ratio of supporting to total non-Mentions attestations",
+    "formula": "S(c) = (|Supports| + |Replicates|) / (|Supports| + |Contradicts| + |Replicates| + |Refutes| + ε)",
+    "range": "(0, 1)",
+    "retraction_effect": {
+      "description": "When claim is formally retracted",
+      "action": "S is set to 0",
+      "trigger": "Retraction event triggers penalty propagation"
+    },
+    "interpretation": {
+      "S_near_1": "Claim replicated 10+ times with no contradictions",
+      "S_near_0": "Claim refuted more than supported"
+    }
+  },
+
+  "O_factor": {
+    "description": "P-07: Real-world outcome linkage",
+    "domain": "{0} ∪ [0.1, 1.0]",
+    "oracle_sources": {
+      "description": "Enumerated oracle source types",
+      "types": [
+        {
+          "name": "TrialRegistry",
+          "fields": ["nct_id", "outcome_reported: bool"],
+          "score_mapping": {
+            "registered_not_completed": 0.3,
+            "completed_results_posted": 0.6,
+            "completed_published_consistent": 0.9,
+            "completed_inconsistent": 0.1
+          }
+        },
+        {
+          "name": "SystematicReviewProtocol",
+          "fields": ["prospero_id", "review_completed: bool"],
+          "score_mapping": {
+            "protocol_registered": 0.2,
+            "review_completed_published": 0.7,
+            "meta_analysis_supports": 0.9,
+            "meta_analysis_contradicts": 0.1
+          }
+        },
+        {
+          "name": "PolicyDocument",
+          "fields": ["doi", "adoption_confirmed: bool"],
+          "score_mapping": {
+            "documented": 0.5,
+            "adoption_confirmed": 0.9
+          }
+        },
+        {
+          "name": "Patent",
+          "fields": ["patent_id", "granted: bool"],
+          "score_mapping": {
+            "filed": 0.3,
+            "granted": 0.8
+          }
+        },
+        {
+          "name": "OpenAlexPolicyLinkage",
+          "fields": ["doi"],
+          "score_mapping": {
+            "documented": 0.4
+          }
+        }
+      ],
+      "aggregation": "O = max(source_scores) — multiple sources, take highest"
+    },
+    "rationale": "O = 0 does not penalize basic science; O > 0 signals real-world consequence"
+  }
+}

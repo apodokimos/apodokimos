@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Apodokimos Penalty Propagation Specification",
+  "schema_version": "0.1.0",
+  "license": "CC0-1.0",
+  "source": "WHITEPAPER.md §5",
+  "description": "Machine-readable specification for retraction cascade algorithm (P-08)",
+
+  "retraction_event": {
+    "description": "When a claim is retracted",
+    "triggers": ["ClaimRetracted event emitted on-chain"],
+    "actors": ["submitter", "governance vote"],
+    "side_effect": "Triggers penalty propagation in indexer"
+  },
+
+  "propagation_algorithm": {
+    "description": "P-08: Cascade algorithm for dependent claims",
+    "pseudocode": "propagate_retraction(c_retracted, G):\n  affected = {}\n  queue = direct_dependents(c_retracted, G)\n  \n  while queue not empty:\n    c_dep = dequeue(queue)\n    penalty = compute_penalty(c_dep, c_retracted, G)\n    apply_penalty(c_dep, penalty)\n    affected.insert(c_dep)\n    \n    if W(c_dep) < threshold_Θ:\n      queue.extend(direct_dependents(c_dep, G))\n  \n  return affected",
+    
+    "compute_penalty": {
+      "formula": "penalty(c_dep, c_retracted) = W(c_dep) × (weight_of_c_retracted_in_dep_set / total_dep_weight)",
+      "description": "Penalty proportional to how load-bearing the retracted claim was"
+    },
+
+    "parameters": {
+      "threshold_Θ": {
+        "description": "Retraction cascade threshold — continue propagation if W falls below",
+        "type": "number",
+        "default": "0.1 (governable parameter)",
+        "range": "[0, 1]"
+      }
+    },
+
+    "apply_penalty": {
+      "sbt_effects": {
+        "submitter": "Largest penalty — submitter_multiplier > 1",
+        "attesters": "Proportional penalty for supported claims"
+      },
+      "score_formula": "Δscore_penalty = -base_increment × penalty_weight × submitter_multiplier"
+    }
+  },
+
+  "rationale": "Makes retraction structurally consequential — not punishment but accurate signal propagation. Graph corrects itself.",
+
+  "sbt_consequences": {
+    "description": "Researcher SBT scores decremented proportionally to contribution to retracted claims",
+    "submitter_multiplier": {
+      "description": "Submitter bears larger penalty than attesters",
+      "value": "> 1.0"
+    },
+    "penalty_distinction": {
+      "fraudulent_claim": "Higher penalty for fraudulent submission",
+      "false_positive_attestation": "Lower penalty than fraudulent submission"
+    }
+  }
+}

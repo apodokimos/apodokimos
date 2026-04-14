@@ -49,39 +49,39 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ### Claim Model Formalization
 
-- [ ] P-01 — Define `ClaimType` taxonomy: `PrimaryClaim | Hypothesis | Method | Result | Replication | Null`
-- [ ] P-02 — Define `AttestationVerdict` enum: `Supports | Contradicts | Replicates | Refutes | Mentions`
-- [ ] P-03 — Formally specify W(claim) = R(t) × D × S × O with typed definitions for each variable
-- [ ] P-04 — Define field-calibrated time-decay function for R(t) per domain class
-- [ ] P-05 — Define dependency depth D: DAG traversal algorithm specification
-- [ ] P-06 — Define survival rate S: ratio of supporting to total non-mentioning attestations
-- [ ] P-07 — Define O factor: enumerated oracle source types and linkage schema
-- [ ] P-08 — Define penalty propagation: retraction event cascades to dependent claims
-- [ ] P-09 — Define SBT reputation score structure: `{ field_id, score, attestation_count, survival_rate }`
-- [ ] P-10 — Define quadratic SBT voting weight formula
+- [x] P-01 — Define `ClaimType` taxonomy: `PrimaryClaim | Hypothesis | Method | Result | Replication | Null`
+- [x] P-02 — Define `AttestationVerdict` enum: `Supports | Contradicts | Replicates | Refutes | Mentions`
+- [x] P-03 — Formally specify W(claim) = R(t) × D × S × O with typed definitions for each variable
+- [x] P-04 — Define field-calibrated time-decay function for R(t) per domain class
+- [x] P-05 — Define dependency depth D: DAG traversal algorithm specification
+- [x] P-06 — Define survival rate S: ratio of supporting to total non-mentioning attestations
+- [x] P-07 — Define O factor: enumerated oracle source types and linkage schema
+- [x] P-08 — Define penalty propagation: retraction event cascades to dependent claims
+- [x] P-09 — Define SBT reputation score structure: `{ field_id, score, attestation_count, survival_rate }`
+- [x] P-10 — Define quadratic SBT voting weight formula
 - [ ] P-11 — Write `WHITEPAPER.md` — ECG technical specification (versioned, `wp-v0.1`), covering:
-  - [ ] P-11a — Abstract: problem statement (IF misalignment, DeSci ontology failure)
-  - [ ] P-11b — Claim model: formal definition, types, granularity constraints
-  - [ ] P-11c — W(claim) formal specification: R(t), D, S, O with typed math
-  - [ ] P-11d — Attestation graph: DAG structure, edge semantics, cycle prevention
-  - [ ] P-11e — Penalty propagation: retraction cascade formal model
-  - [ ] P-11f — SBT reputation: mint/increment/burn lifecycle, non-transferability proof
-  - [ ] P-11g — Governance: quadratic SBT voting, proposal lifecycle, attack surface analysis
-  - [ ] P-11h — Identity layer: DID integration, ZK credential proof scheme
-  - [ ] P-11i — Arweave content layer: tagging schema, hash binding, permanence guarantees
-  - [ ] P-11j — Substrate pallet architecture: storage, extrinsics, events per pallet
-  - [ ] P-11k — Bootstrap strategy: clinical medicine pilot rationale and PICO schema
-  - [ ] P-11l — Security analysis: Sybil, governance capture, oracle manipulation, GDPR
+  - [x] P-11a — Abstract: problem statement (IF misalignment, DeSci ontology failure)
+  - [x] P-11b — Claim model: formal definition, types, granularity constraints
+  - [x] P-11c — W(claim) formal specification: R(t), D, S, O with typed math
+  - [x] P-11d — Attestation graph: DAG structure, edge semantics, cycle prevention
+  - [x] P-11e — Penalty propagation: retraction cascade formal model
+  - [x] P-11f — SBT reputation: mint/increment/burn lifecycle, non-transferability proof
+  - [x] P-11g — Governance: quadratic SBT voting, proposal lifecycle, attack surface analysis
+  - [x] P-11h — Identity layer: DID integration, ZK credential proof scheme
+  - [x] P-11i — Arweave content layer: tagging schema, hash binding, permanence guarantees
+  - [x] P-11j — Substrate pallet architecture: storage, extrinsics, events per pallet
+  - [x] P-11k — Bootstrap strategy: clinical medicine pilot rationale and PICO schema
+  - [x] P-11l — Security analysis: Sybil, governance capture, oracle manipulation, GDPR
   - [ ] P-11m — Anchor `WHITEPAPER.md` on Arweave + Zenodo (DOI for timestamped priority)
   - [ ] P-11n — Register whitepaper as first Apodokimos claim on testnet (protocol validates itself)
 
 ### Field Schema: Clinical Medicine Bootstrap
 
-- [ ] P-12 — Define PICO claim schema (population, intervention, comparator, outcome, effect)
-- [ ] P-13 — Define O factor oracle mapping: `trial_registry_id → ClinicalTrials.gov NCT`
-- [ ] P-14 — Define O factor oracle mapping: `prospero_id → PROSPERO registration`
-- [ ] P-15 — Write `fields/clinical-medicine-v0.1.json` — CC0 schema file
-- [ ] P-16 — Define field normalization coefficient for clinical medicine (baseline USI calibration)
+- [x] P-12 — Define PICO claim schema (population, intervention, comparator, outcome, effect)
+- [x] P-13 — Define O factor oracle mapping: `trial_registry_id → ClinicalTrials.gov NCT`
+- [x] P-14 — Define O factor oracle mapping: `prospero_id → PROSPERO registration`
+- [x] P-15 — Write `fields/clinical-medicine-v0.1.json` — CC0 schema file
+- [x] P-16 — Define field normalization coefficient for clinical medicine (baseline USI calibration)
 
 ---
 

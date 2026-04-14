@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Apodokimos SBT Reputation Specification",
+  "schema_version": "0.1.0",
+  "license": "CC0-1.0",
+  "source": "WHITEPAPER.md §6",
+  "description": "Machine-readable specification for Soulbound Token reputation system (P-09)",
+
+  "design_principles": {
+    "identity_bound": "Attached to DID, not address or token balance",
+    "non_transferable": "Cannot be sold, delegated, or concentrated",
+    "field_specific": "Score in clinical medicine ≠ governance weight in mathematics",
+    "earned_through_survival": "Score increments on validated claims/attestations; decrements on refutations"
+  },
+
+  "reputation_record": {
+    "description": "P-09: SBT reputation score structure",
+    "type": "object",
+    "required": ["did", "field_scores", "attestation_count", "claim_count", "survival_rate", "last_updated"],
+    "properties": {
+      "did": {
+        "description": "Decentralized Identifier",
+        "type": "string",
+        "pattern": "^did:substrate:apodokimos:[a-zA-Z0-9]+$"
+      },
+      "field_scores": {
+        "description": "Field-specific reputation scores: { field_id: score }",
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "attestation_count": {
+        "description": "Total attestations made",
+        "type": "integer",
+        "minimum": 0
+      },
+      "claim_count": {
+        "description": "Total claims submitted",
+        "type": "integer",
+        "minimum": 0
+      },
+      "survival_rate": {
+        "description": "Mean W(claims_submitted)",
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "last_updated": {
+        "description": "Block number of last update",
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  },
+
+  "lifecycle": {
+    "mint": {
+      "trigger": "First accepted attestation",
+      "description": "Minimal SBT entry establishing DID-to-chain linkage",
+      "permission": "pallet-sbt-reputation (IndexerAccount or governance)"
+    },
+
+    "increment_attestation_validated": {
+      "trigger": "Claim attested as Supports/Replicates later receives independent confirmation",
+      "formula": "Δscore = base_increment × agreement_weight",
+      "permission": "pallet-sbt-reputation (IndexerAccount only)"
+    },
+
+    "increment_claim_survived": {
+      "trigger": "Submitted claim reaches survival milestone (e.g., 5 independent replications, O factor confirmed)",
+      "formula": "Δscore = base_increment × W(claim) × survival_milestone_multiplier",
+      "milestones": {
+        "5_replications": "survival_milestone_multiplier = 1.5",
+        "O_factor_confirmed": "survival_milestone_multiplier = 2.0"
+      },
+      "permission": "pallet-sbt-reputation (IndexerAccount only)"
+    },
+
+    "decrement_retraction": {
+      "trigger": "Submitted claim retracted or supported claim refuted",
+      "formula": "Δscore = -base_increment × penalty_weight × submitter_multiplier",
+      "floor": "score >= 0 (no negative scores)",
+      "permission": "pallet-sbt-reputation (IndexerAccount only)"
+    }
+  },
+
+  "non_transferability": {
+    "enforcement_level": "Runtime level — transfer extrinsic absent from dispatchable function set",
+    "technical_mechanism": "pallet-sbt-reputation has no transfer extrinsic, not merely gated by access control",
+    "consequence": "No code path exists for SBT score transfer"
+  },
+
+  "governance_parameters": {
+    "base_increment": {
+      "description": "Base score change per lifecycle event",
+      "type": "integer",
+      "default": 100
+    },
+    "agreement_weight": {
+      "description": "Weight multiplier for attestation validation",
+      "type": "number",
+      "default": 1.0,
+      "range": "[0.5, 2.0]"
+    },
+    "survival_milestone_multiplier": {
+      "description": "Multiplier for claim survival milestones",
+      "type": "number",
+      "default": 1.5
+    },
+    "penalty_weight": {
+      "description": "Base penalty multiplier",
+      "type": "number",
+      "default": 1.0
+    },
+    "submitter_multiplier": {
+      "description": "Extra penalty for claim submitters vs attesters",
+      "type": "number",
+      "default": 2.0,
+      "description_details": "Submitter gets 2× penalty, attesters get 1×"
+    }
+  }
+}

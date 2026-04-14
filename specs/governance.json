@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Apodokimos Governance Specification",
+  "schema_version": "0.1.0",
+  "license": "CC0-1.0",
+  "source": "WHITEPAPER.md §7",
+  "description": "Machine-readable specification for quadratic SBT voting and proposal lifecycle (P-10)",
+
+  "voting_weight": {
+    "description": "P-10: Quadratic SBT voting weight formula",
+    "formula": {
+      "field_specific": "vote_weight(account, F) = sqrt(field_score(account, F))",
+      "cross_field": "vote_weight(account, global) = sqrt(geomean(field_scores(account)))"
+    },
+    "rationale": {
+      "diminishing_returns": "4× SBT score → 2× vote weight (prevents concentration)",
+      "sybil_resistance": "sqrt is subadditive: sqrt(n) < n × sqrt(1) — splitting identity provides no advantage"
+    }
+  },
+
+  "proposal_types": {
+    "description": "Types of governance proposals",
+    "enum": [
+      {
+        "name": "ParameterChange",
+        "fields": ["parameter_id", "old_value", "new_value"],
+        "example": "Change threshold_Θ from 0.1 to 0.15"
+      },
+      {
+        "name": "FieldSchemaAdd",
+        "fields": ["field_id", "schema_arweave_tx"],
+        "example": "Add new field 'astrophysics' with schema"
+      },
+      {
+        "name": "OracleWhitelistUpdate",
+        "fields": ["oracle_id", "action: Add | Remove"],
+        "example": "Add new ClinicalTrials.gov endpoint"
+      },
+      {
+        "name": "PenaltyParameterUpdate",
+        "fields": ["parameter_id", "value"],
+        "example": "Adjust penalty_weight from 1.0 to 1.2"
+      },
+      {
+        "name": "EmergencyRetraction",
+        "fields": ["claim_id", "evidence_arweave_tx"],
+        "example": "Emergency retraction of fraudulent claim"
+      }
+    ]
+  },
+
+  "proposal_lifecycle": {
+    "states": ["Proposed", "Voting", "Passed", "Rejected", "Enacted"],
+    "transitions": {
+      "Proposed → Voting": "Immediate on submission",
+      "Voting → Passed": "Quorum met AND majority Yes",
+      "Voting → Rejected": "Quorum not met OR majority No",
+      "Passed → Enacted": "After timelock (execution_delay_blocks)"
+    },
+    "parameters": {
+      "voting_period_blocks": {
+        "description": "Duration of voting phase",
+        "default": "14 days in blocks"
+      },
+      "quorum_threshold": {
+        "description": "Minimum % of total active SBT weight required",
+        "default": "10% (governable)"
+      },
+      "execution_delay_blocks": {
+        "description": "Timelock before enacted proposal executes",
+        "default": "7 days in blocks"
+      }
+    }
+  },
+
+  "capture_resistance": {
+    "no_token_purchases": "SBTs cannot be bought; governance weight requires demonstrated epistemic contribution",
+    "field_specificity": "No single actor can dominate cross-field governance without expertise across all fields",
+    "agpl_3_protection": "Community fork must remain open; captured fork cannot be privatized",
+    "on_chain_governance": "Protocol changes require on-chain votes, not maintainer approval"
+  },
+
+  "minimum_thresholds": {
+    "attestation": {
+      "description": "Minimum field SBT score to attest to claims",
+      "parameter": "MinAttestationThreshold(field_id)",
+      "launch_value": "Very low (raiseable by governance)"
+    },
+    "proposal_submission": {
+      "description": "Minimum SBT score to submit proposal",
+      "parameter": "MinProposalThreshold",
+      "default": "Moderate (field-agnostic)"
+    }
+  }
+}

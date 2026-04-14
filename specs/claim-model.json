@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Apodokimos Claim Model Specification",
+  "schema_version": "0.1.0",
+  "license": "CC0-1.0",
+  "source": "WHITEPAPER.md §2.2, §2.3",
+  "description": "Machine-readable specification for Claim and Attestation types (P-01, P-02)",
+  
+  "definitions": {
+    "ClaimType": {
+      "description": "P-01: Taxonomy of claim types",
+      "type": "string",
+      "enum": [
+        "PrimaryClaim",
+        "Hypothesis", 
+        "Method",
+        "Result",
+        "Replication",
+        "NullResult"
+      ],
+      "enumDescriptions": {
+        "PrimaryClaim": "A novel falsifiable assertion about the world",
+        "Hypothesis": "A testable prediction not yet tested",
+        "Method": "A procedure claim (reproducibility target)",
+        "Result": "An empirical measurement or observation",
+        "Replication": "An independent repetition of a prior Result",
+        "NullResult": "A Result with no detectable effect (first-class citizen)"
+      }
+    },
+
+    "AttestationVerdict": {
+      "description": "P-02: Taxonomy of attestation verdicts",
+      "type": "string",
+      "enum": [
+        "Supports",
+        "Contradicts",
+        "Replicates",
+        "Refutes",
+        "Mentions"
+      ],
+      "enumDescriptions": {
+        "Supports": "Attester's evidence corroborates the claim",
+        "Contradicts": "Attester's evidence is in tension with the claim",
+        "Replicates": "Independent repetition confirms the claim",
+        "Refutes": "Independent repetition disconfirms the claim",
+        "Mentions": "Neutral reference; excluded from survival scoring"
+      }
+    },
+
+    "ClaimId": {
+      "description": "Blake3 hash of canonical JSON claim content (32 bytes)",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+
+    "DID": {
+      "description": "W3C Decentralized Identifier",
+      "type": "string",
+      "pattern": "^did:substrate:apodokimos:[a-zA-Z0-9]+$"
+    },
+
+    "TxId": {
+      "description": "Arweave transaction ID (43 characters, base64url)",
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{43}$"
+    },
+
+    "BlockNumber": {
+      "description": "Substrate block number",
+      "type": "integer",
+      "minimum": 0
+    },
+
+    "FieldId": {
+      "description": "Field identifier (e.g., 'clinical-medicine')",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+
+    "Claim": {
+      "description": "The minimal unit of falsifiable scientific assertion",
+      "type": "object",
+      "required": ["id", "claim_type", "field_id", "content", "submitter", "depends_on", "arweave_tx", "registered"],
+      "properties": {
+        "id": { "$ref": "#/definitions/ClaimId" },
+        "claim_type": { "$ref": "#/definitions/ClaimType" },
+        "field_id": { "$ref": "#/definitions/FieldId" },
+        "content": {
+          "description": "Claim content stored on Arweave, hash anchored on-chain",
+          "type": "object"
+        },
+        "submitter": { "$ref": "#/definitions/DID" },
+        "depends_on": {
+          "description": "Edges in dependency graph E",
+          "type": "array",
+          "items": { "$ref": "#/definitions/ClaimId" },
+          "maxItems": 32
+        },
+        "arweave_tx": { "$ref": "#/definitions/TxId" },
+        "registered": { "$ref": "#/definitions/BlockNumber" }
+      }
+    },
+
+    "Attestation": {
+      "description": "Typed statement by credentialed reviewer about a claim",
+      "type": "object",
+      "required": ["id", "claim_id", "attester", "verdict", "evidence_tx", "attester_sbt", "block"],
+      "properties": {
+        "id": {
+          "description": "Attestation ID (unique identifier)",
+          "type": "string"
+        },
+        "claim_id": { "$ref": "#/definitions/ClaimId" },
+        "attester": { "$ref": "#/definitions/DID" },
+        "verdict": { "$ref": "#/definitions/AttestationVerdict" },
+        "evidence_tx": {
+          "description": "Arweave pointer to supporting evidence",
+          "anyOf": [{ "$ref": "#/definitions/TxId" }, { "type": "null" }]
+        },
+        "attester_sbt": {
+          "description": "Snapshot of attester's field SBT score at attestation time",
+          "type": "integer",
+          "minimum": 0
+        },
+        "block": { "$ref": "#/definitions/BlockNumber" }
+      }
+    }
+  },
+
+  "graph_invariants": {
+    "dag_constraint": "No claim may depend on itself directly or transitively. Cycles rejected at protocol level.",
+    "one_attestation_per_attester": "No attester may attest to the same claim twice",
+    "no_self_attestation": "An attester may not attest to their own claim"
+  }
+}
