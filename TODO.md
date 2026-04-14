@@ -24,15 +24,15 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ### Workspace Scaffold
 
-- [ ] F-10 — Init Cargo workspace root `Cargo.toml` with all member crates listed
-- [ ] F-11 — Add `rust-toolchain.toml` pinned to latest stable channel
-- [ ] F-12 — Add `.cargo/config.toml` — `cargo-deny` configuration, target settings
-- [ ] F-13 — Init `pnpm-workspace.yaml` for `sdk-ts`
+- [x] F-10 — Init Cargo workspace root `Cargo.toml` with all member crates listed
+- [x] F-11 — Add `rust-toolchain.toml` pinned to latest stable channel
+- [x] F-12 — Add `.cargo/config.toml` — `cargo-deny` configuration, target settings
+- [x] F-13 — Init `pnpm-workspace.yaml` for `sdk-ts`
 - [x] F-14 — Add `.gitignore` covering Rust, Node, IDE artifacts
-- [ ] F-15 — Add `cargo install cargo-skill` to developer setup docs
-- [ ] F-16 — Add `cargo install cargo-audit` to developer setup docs
-- [ ] F-17 — Add `cargo install cargo-deny` to developer setup docs
-- [ ] F-18 — Add `cargo install cargo-expand` to developer setup docs
+- [x] F-15 — Add `cargo install cargo-skill` to developer setup docs
+- [x] F-16 — Add `cargo install cargo-audit` to developer setup docs
+- [x] F-17 — Add `cargo install cargo-deny` to developer setup docs
+- [x] F-18 — Add `cargo install cargo-expand` to developer setup docs
 
 ### CI/CD Skeleton
 

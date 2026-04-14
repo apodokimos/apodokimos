@@ -1,0 +1,15 @@
+[build]
+target = "wasm32-unknown-unknown"
+rustflags = ["-C", "target-cpu=mvp", "-C", "link-arg=--export-table"]
+
+[alias]
+check-all = "check --workspace --all-targets"
+test-all = "test --workspace"
+lint = "clippy --workspace --all-targets -- -D warnings"
+
+[target.wasm32-unknown-unknown]
+runner = "wasm-bindgen-test-runner"
+
+# cargo-deny configuration
+[deny]
+# See .cargo/deny.toml for full configuration

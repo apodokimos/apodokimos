@@ -78,6 +78,7 @@ By making a contribution to this project, I certify that:
 2. **Install dependencies**:
    ```bash
    # Rust tooling
+   cargo install cargo-skill
    cargo install cargo-audit
    cargo install cargo-deny
    cargo install cargo-expand

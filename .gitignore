@@ -96,3 +96,6 @@ secrets/
 # Generated documentation
 target/doc/
 /docs/generated/
+.skill/
+.cursor/rules/skill-context.md
+.windsurf/rules/skill-context.md
