@@ -3,8 +3,11 @@
 **Version:** wp-v0.1  
 **Status:** Draft  
 **License:** CC0-1.0  
-**Site:** https://apodokimos.science
+**Site:** https://apodokimos.science  
 **Repository:** https://github.com/apodokimos/apodokimos  
+**DOI:** https://doi.org/10.5281/zenodo.19583091  
+**Arweave (md):** https://arweave.net/Xy_wY5mer8OHEX8QhdJW7w0L983Fz86k6gQaM8XEweM  
+**Arweave (pdf):** https://arweave.net/5HXQRTB37pxh9UzYr69BdiVlI-5yJL3tvYj_cWMytKM  
 
 ---
 
