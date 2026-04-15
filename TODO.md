@@ -90,18 +90,18 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ### `v0.1.0`
 
-- [ ] C-01 — Init crate with `Cargo.toml`: `no_std`, `thiserror`, `serde`, `blake3`
-- [ ] C-02 — Implement `ClaimId` newtype (blake3 hash of canonical claim content)
-- [ ] C-03 — Implement `Claim` struct with all fields per P-01 spec
-- [ ] C-04 — Implement `ClaimType` enum per P-01
-- [ ] C-05 — Implement `AttestationVerdict` enum per P-02
-- [ ] C-06 — Implement `Attestation` struct: `{ claim_id, attester_did, verdict, evidence_tx_id, block }`
+- [x] C-01 — Init crate with `Cargo.toml`: `no_std`, `thiserror`, `serde`, `blake3`
+- [x] C-02 — Implement `ClaimId` newtype (blake3 hash of canonical claim content)
+- [x] C-03 — Implement `Claim` struct with all fields per P-01 spec
+- [x] C-04 — Implement `ClaimType` enum per P-01
+- [x] C-05 — Implement `AttestationVerdict` enum per P-02
+- [x] C-06 — Implement `Attestation` struct: `{ claim_id, attester_did, verdict, evidence_tx_id, block }`
 - [ ] C-07 — Implement `FieldSchema` trait: `field_id()`, `normalize_score()`, `decay_half_life()`
-- [ ] C-08 — Implement `ApodokimosError` with `thiserror`
-- [ ] C-09 — Implement canonical JSON serialization for `Claim` (deterministic, CC0 schema)
-- [ ] C-10 — Implement `ClaimHash::compute(claim: &Claim) -> ClaimId`
-- [ ] C-11 — Write unit tests: hash stability, serialization round-trip, enum exhaustiveness
-- [ ] C-12 — Write `CHANGELOG.md` entry for v0.1.0
+- [x] C-08 — Implement `ApodokimosError` with `thiserror`
+- [x] C-09 — Implement canonical JSON serialization for `Claim` (deterministic, CC0 schema)
+- [x] C-10 — Implement `ClaimHash::compute(claim: &Claim) -> ClaimId`
+- [x] C-11 — Write unit tests: hash stability, serialization round-trip, enum exhaustiveness
+- [x] C-12 — Write `CHANGELOG.md` entry for v0.1.0
 - [ ] C-13 — Publish `apodokimos-core` v0.1.0 to crates.io
 
 ### `v0.2.0`

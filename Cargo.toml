@@ -1,11 +1,11 @@
 [workspace]
 members = [
     "crates/apodokimos-core",
-    "crates/apodokimos-chain",
-    "crates/apodokimos-arweave",
-    "crates/apodokimos-indexer",
-    "crates/apodokimos-sdk",
-    "crates/apodokimos-cli",
+    # "crates/apodokimos-chain",     # TODO: Phase 3
+    # "crates/apodokimos-arweave",   # TODO: Phase 4
+    # "crates/apodokimos-indexer",   # TODO: Phase 5
+    # "crates/apodokimos-sdk",       # TODO: Phase 6
+    # "crates/apodokimos-cli",       # TODO: Phase 7
 ]
 resolver = "2"
 
