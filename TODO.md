@@ -72,7 +72,7 @@ SemVer milestones marked as `### vX.Y.Z`.
   - [x] P-11j — Substrate pallet architecture: storage, extrinsics, events per pallet
   - [x] P-11k — Bootstrap strategy: clinical medicine pilot rationale and PICO schema
   - [x] P-11l — Security analysis: Sybil, governance capture, oracle manipulation, GDPR
-  - [ ] P-11m — Anchor `WHITEPAPER.md` on Arweave + Zenodo (DOI for timestamped priority)
+  - [x] P-11m — Anchor `WHITEPAPER.md` on Arweave + Zenodo (DOI for timestamped priority)
   - [ ] P-11n — Register whitepaper as first Apodokimos claim on testnet (protocol validates itself)
 
 ### Field Schema: Clinical Medicine Bootstrap
