@@ -31,5 +31,6 @@ pub fn compute_claim_hash(content: &[u8]) -> ClaimId {
 /// Serialize a claim to canonical JSON format (deterministic)
 pub fn canonical_serialize<T: serde::Serialize>(value: &T) -> Result<Vec<u8>, ApodokimosError> {
     // Use compact formatting for determinism
-    serde_json::to_vec(value).map_err(|e: serde_json::Error| ApodokimosError::Serialization(e.to_string()))
+    serde_json::to_vec(value)
+        .map_err(|e: serde_json::Error| ApodokimosError::Serialization(e.to_string()))
 }

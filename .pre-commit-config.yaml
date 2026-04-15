@@ -1,0 +1,66 @@
+repos:
+  - repo: local
+    hooks:
+      # Rust formatting
+      - id: cargo-fmt
+        name: cargo fmt
+        entry: cargo fmt --all -- --check
+        language: system
+        pass_filenames: false
+        files: '\.rs$'
+
+      # Rust linting
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: cargo clippy --workspace --all-targets -- -D warnings
+        language: system
+        pass_filenames: false
+        files: '\.rs$'
+
+      # Rust tests (native target only, not WASM)
+      - id: cargo-test
+        name: cargo test
+        entry: cargo test --workspace --all-targets --target x86_64-unknown-linux-gnu
+        language: system
+        pass_filenames: false
+        files: '\.rs$'
+
+      # Security audit (runs on Cargo.toml/Cargo.lock changes)
+      - id: cargo-audit
+        name: cargo audit
+        entry: cargo audit
+        language: system
+        pass_filenames: false
+        files: '(Cargo\.toml|Cargo\.lock)$'
+
+      # License/advisory/ban check
+      - id: cargo-deny
+        name: cargo deny
+        entry: cargo deny check
+        language: system
+        pass_filenames: false
+        files: '(Cargo\.toml|Cargo\.lock|deny\.toml)$'
+
+      # pnpm install (when package.json changes)
+      - id: pnpm-install
+        name: pnpm install
+        entry: pnpm install --frozen-lockfile
+        language: system
+        pass_filenames: false
+        files: '(package\.json|pnpm-lock\.yaml)$'
+
+      # pnpm lint (TypeScript files)
+      - id: pnpm-lint
+        name: pnpm lint
+        entry: pnpm run lint
+        language: system
+        pass_filenames: false
+        files: '\.(ts|tsx|js|jsx)$'
+
+      # pnpm test (TypeScript files)
+      - id: pnpm-test
+        name: pnpm test
+        entry: pnpm test
+        language: system
+        pass_filenames: false
+        files: '\.(ts|tsx|js|jsx)$'

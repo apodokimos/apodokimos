@@ -1,6 +1,6 @@
 //! Claim and attestation types (P-01, P-02)
 
-use crate::{canonical_serialize, compute_claim_hash, ApodokimosError};
+use crate::{ApodokimosError, canonical_serialize, compute_claim_hash};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -61,7 +61,10 @@ impl ClaimType {
     pub const fn is_empirical(&self) -> bool {
         matches!(
             self,
-            ClaimType::PrimaryClaim | ClaimType::Result | ClaimType::Replication | ClaimType::NullResult
+            ClaimType::PrimaryClaim
+                | ClaimType::Result
+                | ClaimType::Replication
+                | ClaimType::NullResult
         )
     }
 }
@@ -104,6 +107,7 @@ impl AttestationVerdict {
 pub type TxId = String;
 
 /// W3C Decentralized Identifier
+#[allow(clippy::upper_case_acronyms)]
 pub type DID = String;
 
 /// Field identifier (e.g., "clinical-medicine")
@@ -161,7 +165,9 @@ impl Claim {
     ) -> Self {
         let canonical_json = content.into();
         let content = ClaimContent { canonical_json };
-        let id = content.compute_hash();
+        let id = content
+            .compute_hash()
+            .expect("ClaimContent serialization should not fail");
 
         Self {
             id,
@@ -261,7 +267,7 @@ mod tests {
         assert!(AttestationVerdict::Replicates.is_supporting());
         assert!(AttestationVerdict::Contradicts.is_contradicting());
         assert!(AttestationVerdict::Refutes.is_contradicting());
-        
+
         assert!(AttestationVerdict::Supports.contributes_to_survival());
         assert!(AttestationVerdict::Replicates.contributes_to_survival());
         assert!(!AttestationVerdict::Mentions.contributes_to_survival());
@@ -336,7 +342,7 @@ mod tests {
 
         let serialized = serde_json::to_string(&claim).unwrap();
         let deserialized: Claim = serde_json::from_str(&serialized).unwrap();
-        
+
         assert_eq!(claim.id.as_bytes(), deserialized.id.as_bytes());
         assert_eq!(claim.claim_type, deserialized.claim_type);
     }
@@ -345,6 +351,9 @@ mod tests {
     fn claim_id_display() {
         let id = ClaimId::from_bytes([0xab; 32]);
         let display = format!("{}", id);
-        assert_eq!(display, "abababababababababababababababababababababababababababababababab");
+        assert_eq!(
+            display,
+            "abababababababababababababababababababababababababababababababab"
+        );
     }
 }
