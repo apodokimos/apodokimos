@@ -36,12 +36,12 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ### CI/CD Skeleton
 
-- [ ] F-19 — Create `.github/workflows/ci.yml` — `cargo check`, `cargo test`, `cargo clippy --deny warnings`
-- [ ] F-20 — Create `.github/workflows/audit.yml` — `cargo audit` on push + weekly schedule
-- [ ] F-21 — Create `.github/workflows/deny.yml` — `cargo deny check` (licenses, advisories, bans)
-- [ ] F-22 — Create `.github/workflows/fmt.yml` — `cargo fmt --check`
-- [ ] F-23 — Add branch protection rules: require CI green before merge, no force push to `main`
-- [ ] F-24 — Configure Dependabot for Cargo and npm weekly updates
+- [x] F-19 — Create `.github/workflows/ci.yml` — `cargo check`, `cargo test`, `cargo clippy --deny warnings`
+- [x] F-20 — Create `.github/workflows/audit.yml` — `cargo audit` on push + weekly schedule
+- [x] F-21 — Create `.github/workflows/deny.yml` — `cargo deny check` (licenses, advisories, bans)
+- [x] F-22 — Create `.github/workflows/fmt.yml` — `cargo fmt --check`
+- [ ] F-23 — Add branch protection rules: require CI green before merge, no force push to `main` *(requires manual GitHub UI configuration)*
+- [x] F-24 — Configure Dependabot for Cargo and npm weekly updates
 
 ---
 
