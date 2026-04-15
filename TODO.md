@@ -59,7 +59,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [x] P-08 — Define penalty propagation: retraction event cascades to dependent claims
 - [x] P-09 — Define SBT reputation score structure: `{ field_id, score, attestation_count, survival_rate }`
 - [x] P-10 — Define quadratic SBT voting weight formula
-- [ ] P-11 — Write `WHITEPAPER.md` — ECG technical specification (versioned, `wp-v0.1`), covering:
+- [x] P-11 — Write `WHITEPAPER.md` — ECG technical specification (versioned, `wp-v0.1`), covering:
   - [x] P-11a — Abstract: problem statement (IF misalignment, DeSci ontology failure)
   - [x] P-11b — Claim model: formal definition, types, granularity constraints
   - [x] P-11c — W(claim) formal specification: R(t), D, S, O with typed math
@@ -102,6 +102,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [x] C-10 — Implement `ClaimHash::compute(claim: &Claim) -> ClaimId`
 - [x] C-11 — Write unit tests: hash stability, serialization round-trip, enum exhaustiveness
 - [x] C-12 — Write `CHANGELOG.md` entry for v0.1.0
+- [ ] C-13 — Publish `apodokimos-core` v0.1.0 to crates.io
 
 ### `v0.2.0`
 
@@ -112,7 +113,6 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [ ] C-18 — Implement O factor: typed `OFactorSource` enum + linkage validation
 - [ ] C-19 — Implement penalty propagation: `propagate_retraction(claim_id, graph) -> Vec<AffectedClaim>`
 - [ ] C-20 — Write property-based tests with `proptest` for weight function monotonicity
-- [ ] C-21 — Publish `apodokimos-core` v0.2.0
 
 ---
 
@@ -239,8 +239,8 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [ ] B-03 — Register contradicting claim: known failed replication of same trial
 - [ ] B-04 — Demonstrate penalty propagation: retract base claim, observe score cascade
 - [ ] B-05 — Register O factor: link to ClinicalTrials.gov NCT for same trial
-- [ ] B-06 — Publish case study as first Apodokimos whitepaper — anchored on Arweave, registered as first ECG claim
-- [ ] B-07 — Pilot whitepaper is itself an Apodokimos claim — protocol bootstraps its own legitimacy
+- [x] B-06 — Whitepaper anchored on Arweave + DOI on Zenodo (10.5281/zenodo.19583091) — completed at Phase 1
+- [ ] B-07 — Register whitepaper as first ECG claim on testnet — blocked on P-11n
 
 ---
 
@@ -279,5 +279,5 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [ ] `CHANGELOG.md` updated with SemVer entry
 - [ ] Crate versions bumped in `Cargo.toml`
 - [ ] Git tag `vX.Y.Z` on `main`
-- [ ] crates.io publish (for publishable crates)
+- [ ] crates.io publish (apodokimos-sdk, apodokimos-cli only — internal crates not published)
 - [ ] npm publish (for `sdk-ts`)
