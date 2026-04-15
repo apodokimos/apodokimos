@@ -102,7 +102,6 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [x] C-10 — Implement `ClaimHash::compute(claim: &Claim) -> ClaimId`
 - [x] C-11 — Write unit tests: hash stability, serialization round-trip, enum exhaustiveness
 - [x] C-12 — Write `CHANGELOG.md` entry for v0.1.0
-- [ ] C-13 — Publish `apodokimos-core` v0.1.0 to crates.io
 
 ### `v0.2.0`
 

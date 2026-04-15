@@ -34,7 +34,7 @@ pub enum ApodokimosError {
     AttestationValidation(String),
 
     /// Hash verification failed
-    #[error("hash verification failed: computed {computed:?} but expected {expected:?}")]
+    #[error("hash verification failed: computed {computed} but expected {expected}")]
     HashVerification {
         computed: crate::ClaimId,
         expected: crate::ClaimId,

@@ -32,6 +32,12 @@ impl AsRef<[u8]> for ClaimId {
     }
 }
 
+impl core::fmt::Display for ClaimId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.to_hex())
+    }
+}
+
 /// Claim type taxonomy (P-01)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
@@ -51,8 +57,8 @@ pub enum ClaimType {
 }
 
 impl ClaimType {
-    /// Check if this claim type contributes to survival scoring
-    pub const fn contributes_to_survival(&self) -> bool {
+    /// Check if this is an empirical claim type (can receive survival-trackable attestations)
+    pub const fn is_empirical(&self) -> bool {
         matches!(
             self,
             ClaimType::PrimaryClaim | ClaimType::Result | ClaimType::Replication | ClaimType::NullResult
@@ -134,6 +140,14 @@ pub struct ClaimContent {
     pub canonical_json: String,
 }
 
+impl ClaimContent {
+    /// Compute hash of this content's canonical JSON serialization
+    pub fn compute_hash(&self) -> Result<ClaimId, ApodokimosError> {
+        let serialized = canonical_serialize(self)?;
+        Ok(compute_claim_hash(&serialized))
+    }
+}
+
 impl Claim {
     /// Create a new claim with computed ID
     pub fn new(
@@ -144,32 +158,27 @@ impl Claim {
         depends_on: Vec<ClaimId>,
         arweave_tx: impl Into<String>,
         registered: BlockNumber,
-    ) -> Result<Self, ApodokimosError> {
+    ) -> Self {
         let canonical_json = content.into();
-        let content_bytes = canonical_json.as_bytes();
-        let id = compute_claim_hash(content_bytes);
+        let content = ClaimContent { canonical_json };
+        let id = content.compute_hash();
 
-        Ok(Self {
+        Self {
             id,
             claim_type,
             field_id: field_id.into(),
-            content: ClaimContent { canonical_json },
+            content,
             submitter: submitter.into(),
             depends_on,
             arweave_tx: arweave_tx.into(),
             registered,
-        })
-    }
-
-    /// Compute claim hash from canonical serialization
-    pub fn compute_hash(&self) -> ClaimId {
-        let serialized = canonical_serialize(&self.content).unwrap_or_default();
-        compute_claim_hash(&serialized)
+        }
     }
 
     /// Verify the claim ID matches the content hash
-    pub fn verify_hash(&self) -> bool {
-        self.id == self.compute_hash()
+    pub fn verify_hash(&self) -> Result<bool, ApodokimosError> {
+        let computed = self.content.compute_hash()?;
+        Ok(self.id == computed)
     }
 
     /// Check if this claim depends on another (directly)
@@ -237,13 +246,13 @@ mod tests {
     }
 
     #[test]
-    fn claim_type_survival_contribution() {
-        assert!(ClaimType::PrimaryClaim.contributes_to_survival());
-        assert!(ClaimType::Result.contributes_to_survival());
-        assert!(ClaimType::Replication.contributes_to_survival());
-        assert!(ClaimType::NullResult.contributes_to_survival());
-        assert!(!ClaimType::Hypothesis.contributes_to_survival());
-        assert!(!ClaimType::Method.contributes_to_survival());
+    fn claim_type_empirical() {
+        assert!(ClaimType::PrimaryClaim.is_empirical());
+        assert!(ClaimType::Result.is_empirical());
+        assert!(ClaimType::Replication.is_empirical());
+        assert!(ClaimType::NullResult.is_empirical());
+        assert!(!ClaimType::Hypothesis.is_empirical());
+        assert!(!ClaimType::Method.is_empirical());
     }
 
     #[test]
@@ -268,15 +277,16 @@ mod tests {
             vec![],
             "Xy_wY5mer8OHEX8QhdJW7w0L983Fz86k6gQaM8XEweM",
             1000,
-        ).unwrap();
+        );
 
-        // Hash should be consistent
-        let hash1 = claim.compute_hash();
-        let hash2 = claim.compute_hash();
+        // Content hash should be consistent
+        let hash1 = claim.content.compute_hash().unwrap();
+        let hash2 = claim.content.compute_hash().unwrap();
         assert_eq!(hash1.as_bytes(), hash2.as_bytes());
 
         // ID should match computed hash
-        assert!(claim.verify_hash());
+        assert!(claim.verify_hash().unwrap());
+        assert_eq!(claim.id.to_hex(), hash1.to_hex());
     }
 
     #[test]
@@ -290,7 +300,7 @@ mod tests {
             vec![dep_id],
             "test_tx",
             100,
-        ).unwrap();
+        );
 
         assert!(claim.depends_directly_on(&dep_id));
     }
@@ -322,12 +332,19 @@ mod tests {
             vec![],
             "tx123",
             100,
-        ).unwrap();
+        );
 
         let serialized = serde_json::to_string(&claim).unwrap();
         let deserialized: Claim = serde_json::from_str(&serialized).unwrap();
         
         assert_eq!(claim.id.as_bytes(), deserialized.id.as_bytes());
         assert_eq!(claim.claim_type, deserialized.claim_type);
+    }
+
+    #[test]
+    fn claim_id_display() {
+        let id = ClaimId::from_bytes([0xab; 32]);
+        let display = format!("{}", id);
+        assert_eq!(display, "abababababababababababababababababababababababababababababababab");
     }
 }
