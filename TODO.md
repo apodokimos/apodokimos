@@ -96,13 +96,12 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [x] C-04 — Implement `ClaimType` enum per P-01
 - [x] C-05 — Implement `AttestationVerdict` enum per P-02
 - [x] C-06 — Implement `Attestation` struct: `{ claim_id, attester_did, verdict, evidence_tx_id, block }`
-- [ ] C-07 — Implement `FieldSchema` trait: `field_id()`, `normalize_score()`, `decay_half_life()`
+- [x] C-07 — Implement `FieldSchema` trait: `field_id()`, `normalize_score()`, `decay_half_life()`
 - [x] C-08 — Implement `ApodokimosError` with `thiserror`
 - [x] C-09 — Implement canonical JSON serialization for `Claim` (deterministic, CC0 schema)
 - [x] C-10 — Implement `ClaimHash::compute(claim: &Claim) -> ClaimId`
 - [x] C-11 — Write unit tests: hash stability, serialization round-trip, enum exhaustiveness
 - [x] C-12 — Write `CHANGELOG.md` entry for v0.1.0
-- [ ] C-13 — Publish `apodokimos-core` v0.1.0 to crates.io
 
 ### `v0.2.0`
 

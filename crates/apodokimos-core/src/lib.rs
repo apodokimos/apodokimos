@@ -15,9 +15,11 @@ extern crate alloc;
 
 mod claim;
 mod error;
+mod field;
 
 pub use claim::{Attestation, AttestationVerdict, Claim, ClaimId, ClaimType};
 pub use error::ApodokimosError;
+pub use field::{ClinicalMedicine, FieldSchema};
 
 use blake3::Hasher;
 
