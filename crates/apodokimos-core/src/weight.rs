@@ -48,6 +48,14 @@ pub struct WeightFactors {
 
 impl WeightFactors {
     /// Create new factors with all values
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::WeightFactors;
+    ///
+    /// let factors = WeightFactors::new(0.8, 1.5, 0.9, 0.7);
+    /// assert_eq!(factors.product(), 0.8 * 1.5 * 0.9 * 0.7);
+    /// ```
     pub const fn new(replication: f64, dependency: f64, survival: f64, outcome: f64) -> Self {
         Self {
             replication,
@@ -58,6 +66,15 @@ impl WeightFactors {
     }
 
     /// Compute product of all factors
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::WeightFactors;
+    ///
+    /// let factors = WeightFactors::new(0.5, 2.0, 0.8, 0.9);
+    /// let product = factors.product();
+    /// assert!((product - 0.72).abs() < 0.001);
+    /// ```
     pub fn product(&self) -> f64 {
         self.replication * self.dependency * self.survival * self.outcome
     }
@@ -96,6 +113,14 @@ pub enum OFactorSource {
 
 impl OFactorSource {
     /// Base score contribution for this source type
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::OFactorSource;
+    ///
+    /// assert_eq!(OFactorSource::RegulatoryApproval.base_score(), 1.0);
+    /// assert_eq!(OFactorSource::MediaCoverage.base_score(), 0.3);
+    /// ```
     pub const fn base_score(&self) -> f64 {
         match self {
             // Highest confidence: regulatory and market proof
@@ -143,6 +168,20 @@ pub struct OFactorLinkage {
 
 impl OFactorLinkage {
     /// Get the computed score for this linkage
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::{OFactorLinkage, OFactorSource};
+    ///
+    /// let linkage = OFactorLinkage::new(
+    ///     OFactorSource::ClinicalOutcome,
+    ///     "evidence_tx",
+    ///     1000,
+    ///     Some("did:oracle:test"),
+    ///     true,
+    /// );
+    /// assert_eq!(linkage.score(), 0.9); // 0.9 * 1.0 (verified)
+    /// ```
     pub fn score(&self) -> f64 {
         self.score
     }
