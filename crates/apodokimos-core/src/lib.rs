@@ -16,10 +16,12 @@ extern crate alloc;
 mod claim;
 mod error;
 mod field;
+mod weight;
 
 pub use claim::{Attestation, AttestationVerdict, Claim, ClaimId, ClaimType};
 pub use error::ApodokimosError;
 pub use field::{ClinicalMedicine, FieldSchema};
+pub use weight::{AffectedClaim, ClaimWeight, GraphSnapshot, OFactorLinkage, OFactorSource, WeightFactors, WeightFunction, RETRACTION_THRESHOLD};
 
 use blake3::Hasher;
 

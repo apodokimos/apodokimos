@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 /// Blake3 hash of canonical claim content (32 bytes)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ClaimId([u8; 32]);
 
 impl ClaimId {

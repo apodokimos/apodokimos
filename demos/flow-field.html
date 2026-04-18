@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Field Particle System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #050505;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background: rgba(20, 20, 25, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            color: rgba(255, 255, 255, 0.9);
+            z-index: 10;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transition: opacity 0.3s ease;
+        }
+
+        .controls:hover {
+            opacity: 1;
+        }
+
+        .controls.minimized {
+            opacity: 0.3;
+            cursor: pointer;
+        }
+
+        .controls.minimized:hover {
+            opacity: 0.8;
+        }
+
+        h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .value {
+            color: #64b5f6;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #64b5f6;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #64b5f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 16px;
+            background: rgba(100, 181, 246, 0.15);
+            border: 1px solid rgba(100, 181, 246, 0.3);
+            border-radius: 8px;
+            color: #64b5f6;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: rgba(100, 181, 246, 0.25);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status {
+            margin-top: 12px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+            height: 16px;
+        }
+
+        .content {
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            overflow: hidden;
+        }
+
+        .controls.minimized .content {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="controls" id="controls">
+        <h1>
+            Flow Field
+            <button class="toggle-btn" id="toggleBtn">−</button>
+        </h1>
+        <div class="content" id="content">
+            <div class="control-group">
+                <label>Particles <span class="value" id="particleCountVal">1500</span></label>
+                <input type="range" id="particleCount" min="100" max="5000" value="1500" step="100">
+            </div>
+            
+            <div class="control-group">
+                <label>Flow Scale <span class="value" id="scaleVal">0.008</span></label>
+                <input type="range" id="scale" min="0.001" max="0.05" value="0.008" step="0.001">
+            </div>
+            
+            <div class="control-group">
+                <label>Evolution Speed <span class="value" id="speedVal">0.0005</span></label>
+                <input type="range" id="speed" min="0" max="0.002" value="0.0005" step="0.0001">
+            </div>
+            
+            <div class="control-group">
+                <label>Force Strength <span class="value" id="forceVal">2</span></label>
+                <input type="range" id="force" min="0.1" max="5" value="2" step="0.1">
+            </div>
+            
+            <div class="control-group">
+                <label>Trail Fade <span class="value" id="fadeVal">0.08</span></label>
+                <input type="range" id="fade" min="0.01" max="0.3" value="0.08" step="0.01">
+            </div>
+            
+            <div class="buttons">
+                <button id="randomizeBtn" class="secondary">Randomize</button>
+                <button id="saveBtn">Save</button>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        // Perlin Noise Implementation
+        class PerlinNoise {
+            constructor() {
+                this.permutation = new Uint8Array(512);
+                this.p = new Uint8Array(512);
+                this.seed(0);
+            }
+
+            seed(value) {
+                let s = value;
+                const random = () => {
+                    s = (s * 9301 + 49297) % 233280;
+                    return s / 233280;
+                };
+
+                for (let i = 0; i < 256; i++) {
+                    this.permutation[i] = i;
+                }
+
+                for (let i = 255; i > 0; i--) {
+                    const j = Math.floor(random() * (i + 1));
+                    [this.permutation[i], this.permutation[j]] = [this.permutation[j], this.permutation[i]];
+                }
+
+                for (let i = 0; i < 512; i++) {
+                    this.p[i] = this.permutation[i & 255];
+                }
+            }
+
+            fade(t) {
+                return t * t * t * (t * (t * 6 - 15) + 10);
+            }
+
+            lerp(t, a, b) {
+                return a + t * (b - a);
+            }
+
+            grad(hash, x, y) {
+                const h = hash & 15;
+                const u = h < 8 ? x : y;
+                const v = h < 8 ? y : x;
+                return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+            }
+
+            noise(x, y, z) {
+                const X = Math.floor(x) & 255;
+                const Y = Math.floor(y) & 255;
+                const Z = Math.floor(z) & 255;
+
+                x -= Math.floor(x);
+                y -= Math.floor(y);
+                z -= Math.floor(z);
+
+                const u = this.fade(x);
+                const v = this.fade(y);
+                const w = this.fade(z);
+
+                const A = this.p[X] + Y;
+                const AA = this.p[A] + Z;
+                const AB = this.p[A + 1] + Z;
+                const B = this.p[X + 1] + Y;
+                const BA = this.p[B] + Z;
+                const BB = this.p[B + 1] + Z;
+
+                return this.lerp(w, this.lerp(v, this.lerp(u, this.grad(this.p[AA], x, y, z),
+                    this.grad(this.p[BA], x - 1, y, z)),
+                    this.lerp(u, this.grad(this.p[AB], x, y - 1, z),
+                        this.grad(this.p[BB], x - 1, y - 1, z))),
+                    this.lerp(v, this.lerp(u, this.grad(this.p[AA + 1], x, y, z - 1),
+                        this.grad(this.p[BA + 1], x - 1, y, z - 1)),
+                        this.lerp(u, this.grad(this.p[AB + 1], x, y - 1, z - 1),
+                            this.grad(this.p[BB + 1], x - 1, y - 1, z - 1))));
+            }
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.prevX = x;
+                this.prevY = y;
+                this.life = Math.random() * 100 + 50;
+                this.maxLife = this.life;
+            }
+
+            update(noise, time, config) {
+                this.prevX = this.x;
+                this.prevY = this.y;
+
+                const n = noise.noise(
+                    this.x * config.scale, 
+                    this.y * config.scale, 
+                    time
+                );
+
+                const angle = n * Math.PI * 2;
+
+                this.vx += Math.cos(angle) * config.force * 0.1;
+                this.vy += Math.sin(angle) * config.force * 0.1;
+
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed > config.maxSpeed) {
+                    this.vx = (this.vx / speed) * config.maxSpeed;
+                    this.vy = (this.vy / speed) * config.maxSpeed;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+
+                if (this.x < 0) this.x = config.width;
+                if (this.x > config.width) this.x = 0;
+                if (this.y < 0) this.y = config.height;
+                if (this.y > config.height) this.y = 0;
+
+                this.life--;
+            }
+
+            draw(ctx, hue) {
+                ctx.beginPath();
+                ctx.moveTo(this.prevX, this.prevY);
+                ctx.lineTo(this.x, this.y);
+                ctx.strokeStyle = `hsla(${hue}, 70%, 60%, ${this.life / this.maxLife * 0.5})`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            isDead() {
+                return this.life <= 0;
+            }
+
+            reset(x, y) {
+                this.x = x;
+                this.y = y;
+                this.prevX = x;
+                this.prevY = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.life = Math.random() * 100 + 50;
+                this.maxLife = this.life;
+            }
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let particles = [];
+        let noise = new PerlinNoise();
+        let time = 0;
+        let animationId;
+        let baseHue = 200;
+
+        const config = {
+            particleCount: 1500,
+            scale: 0.008,
+            speed: 0.0005,
+            force: 2,
+            fade: 0.08,
+            maxSpeed: 4,
+            width: 0,
+            height: 0,
+            seed: Math.floor(Math.random() * 10000)
+        };
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            config.width = width;
+            config.height = height;
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < config.particleCount; i++) {
+                particles.push(new Particle(
+                    Math.random() * width,
+                    Math.random() * height
+                ));
+            }
+        }
+
+        function updateConfig() {
+            if (particles.length < config.particleCount) {
+                while (particles.length < config.particleCount) {
+                    particles.push(new Particle(
+                        Math.random() * width,
+                        Math.random() * height
+                    ));
+                }
+            } else if (particles.length > config.particleCount) {
+                particles = particles.slice(0, config.particleCount);
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = `rgba(5, 5, 5, ${config.fade})`;
+            ctx.fillRect(0, 0, width, height);
+
+            time += config.speed;
+            ctx.globalCompositeOperation = 'lighter';
+            
+            baseHue = (baseHue + 0.1) % 360;
+            
+            particles.forEach((particle, index) => {
+                particle.update(noise, time, config);
+                
+                const hue = (baseHue + index * 0.05) % 360;
+                particle.draw(ctx, hue);
+
+                if (particle.isDead()) {
+                    particle.reset(
+                        Math.random() * width,
+                        Math.random() * height
+                    );
+                }
+            });
+
+            ctx.globalCompositeOperation = 'source-over';
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function randomize() {
+            config.seed = Math.floor(Math.random() * 10000);
+            noise.seed(config.seed);
+            
+            config.scale = 0.002 + Math.random() * 0.02;
+            config.speed = 0.0001 + Math.random() * 0.0015;
+            config.force = 0.5 + Math.random() * 3;
+            baseHue = Math.random() * 360;
+            
+            updateUI();
+            showStatus('Randomized!');
+        }
+
+        function saveConfig() {
+            const saveData = {
+                seed: config.seed,
+                particleCount: config.particleCount,
+                scale: config.scale,
+                speed: config.speed,
+                force: config.force,
+                fade: config.fade,
+                baseHue: baseHue,
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                localStorage.setItem('flowFieldConfig', JSON.stringify(saveData));
+                showStatus('Configuration saved!');
+            } catch (e) {
+                showStatus('Failed to save');
+            }
+        }
+
+        function loadConfig() {
+            try {
+                const saved = localStorage.getItem('flowFieldConfig');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    
+                    config.seed = data.seed || 0;
+                    config.particleCount = data.particleCount || 1500;
+                    config.scale = data.scale || 0.008;
+                    config.speed = data.speed || 0.0005;
+                    config.force = data.force || 2;
+                    config.fade = data.fade || 0.08;
+                    baseHue = data.baseHue || 200;
+                    
+                    noise.seed(config.seed);
+                    updateConfig();
+                    updateUI();
+                    showStatus('Configuration loaded!');
+                    return true;
+                }
+            } catch (e) {
+                console.error('Failed to load config', e);
+            }
+            return false;
+        }
+
+        function updateUI() {
+            document.getElementById('particleCount').value = config.particleCount;
+            document.getElementById('particleCountVal').textContent = config.particleCount;
+            
+            document.getElementById('scale').value = config.scale;
+            document.getElementById('scaleVal').textContent = config.scale.toFixed(4);
+            
+            document.getElementById('speed').value = config.speed;
+            document.getElementById('speedVal').textContent = config.speed.toFixed(4);
+            
+            document.getElementById('force').value = config.force;
+            document.getElementById('forceVal').textContent = config.force.toFixed(1);
+            
+            document.getElementById('fade').value = config.fade;
+            document.getElementById('fadeVal').textContent = config.fade.toFixed(2);
+        }
+
+        function showStatus(msg) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            setTimeout(() => {
+                status.textContent = '';
+            }, 2000);
+        }
+
+        document.getElementById('particleCount').addEventListener('input', (e) => {
+            config.particleCount = parseInt(e.target.value);
+            document.getElementById('particleCountVal').textContent = config.particleCount;
+            updateConfig();
+        });
+
+        document.getElementById('scale').addEventListener('input', (e) => {
+            config.scale = parseFloat(e.target.value);
+            document.getElementById('scaleVal').textContent = config.scale.toFixed(4);
+        });
+
+        document.getElementById('speed').addEventListener('input', (e) => {
+            config.speed = parseFloat(e.target.value);
+            document.getElementById('speedVal').textContent = config.speed.toFixed(4);
+        });
+
+        document.getElementById('force').addEventListener('input', (e) => {
+            config.force = parseFloat(e.target.value);
+            document.getElementById('forceVal').textContent = config.force.toFixed(1);
+        });
+
+        document.getElementById('fade').addEventListener('input', (e) => {
+            config.fade = parseFloat(e.target.value);
+            document.getElementById('fadeVal').textContent = config.fade.toFixed(2);
+        });
+
+        document.getElementById('randomizeBtn').addEventListener('click', randomize);
+        document.getElementById('saveBtn').addEventListener('click', saveConfig);
+
+        const controls = document.getElementById('controls');
+        const toggleBtn = document.getElementById('toggleBtn');
+        let minimized = false;
+
+        toggleBtn.addEventListener('click', () => {
+            minimized = !minimized;
+            controls.classList.toggle('minimized', minimized);
+            toggleBtn.textContent = minimized ? '+' : '−';
+        });
+
+        window.addEventListener('resize', () => {
+            resize();
+            initParticles();
+        });
+
+        resize();
+        
+        if (!loadConfig()) {
+            noise.seed(config.seed);
+        }
+        
+        initParticles();
+        animate();
+    </script>
+</body>
+</html>
