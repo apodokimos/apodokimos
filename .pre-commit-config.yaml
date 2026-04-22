@@ -9,10 +9,10 @@ repos:
         pass_filenames: false
         files: '\.rs$'
 
-      # Rust linting
+      # Rust linting (native target only, not WASM)
       - id: cargo-clippy
         name: cargo clippy
-        entry: cargo clippy --workspace --all-targets -- -D warnings
+        entry: cargo clippy --workspace --all-targets --target x86_64-unknown-linux-gnu -- -D warnings
         language: system
         pass_filenames: false
         files: '\.rs$'

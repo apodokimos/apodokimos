@@ -16,10 +16,12 @@ extern crate alloc;
 mod claim;
 mod error;
 mod field;
+mod weight;
 
 pub use claim::{Attestation, AttestationVerdict, Claim, ClaimId, ClaimType};
 pub use error::ApodokimosError;
 pub use field::{ClinicalMedicine, FieldSchema};
+pub use weight::{AffectedClaim, ClaimWeight, GraphSnapshot, OFactorSource, WeightFunction};
 
 use blake3::Hasher;
 
@@ -36,3 +38,7 @@ pub fn canonical_serialize<T: serde::Serialize>(value: &T) -> Result<Vec<u8>, Ap
     serde_json::to_vec(value)
         .map_err(|e: serde_json::Error| ApodokimosError::Serialization(e.to_string()))
 }
+
+/// Re-export ClaimContent for weight module tests
+#[doc(hidden)]
+pub use claim::ClaimContent;

@@ -19,3 +19,6 @@ hex = { version = "0.4", default-features = false, features = ["alloc"] }
 default = ["std"]
 std = ["thiserror/std", "serde/std", "serde_json/std", "blake3/std"]
 
+[dev-dependencies]
+proptest = "1.5"
+

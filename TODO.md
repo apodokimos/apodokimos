@@ -105,13 +105,13 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ### `v0.2.0`
 
-- [ ] C-14 — Implement `WeightFunction::compute(claim_id, graph_snapshot) -> ClaimWeight`
-- [ ] C-15 — Implement R(t) time-decay with field-calibrated half-life
-- [ ] C-16 — Implement D dependency depth traversal on DAG
-- [ ] C-17 — Implement S survival rate from attestation set
-- [ ] C-18 — Implement O factor: typed `OFactorSource` enum + linkage validation
-- [ ] C-19 — Implement penalty propagation: `propagate_retraction(claim_id, graph) -> Vec<AffectedClaim>`
-- [ ] C-20 — Write property-based tests with `proptest` for weight function monotonicity
+- [x] C-14 — Implement `WeightFunction::compute(claim_id, graph_snapshot) -> ClaimWeight`
+- [x] C-15 — Implement R(t) time-decay with field-calibrated half-life
+- [x] C-16 — Implement D dependency depth traversal on DAG
+- [x] C-17 — Implement S survival rate from attestation set
+- [x] C-18 — Implement O factor: typed `OFactorSource` enum + linkage validation
+- [x] C-19 — Implement penalty propagation: `propagate_retraction(claim_id, graph) -> Vec<AffectedClaim>`
+- [x] C-20 — Write property-based tests with `proptest` for weight function monotonicity
 
 ---
 
