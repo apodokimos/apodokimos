@@ -11,6 +11,15 @@ pub struct ClaimId([u8; 32]);
 
 impl ClaimId {
     /// Create from raw bytes
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::ClaimId;
+    ///
+    /// let bytes = [0u8; 32];
+    /// let id = ClaimId::from_bytes(bytes);
+    /// assert_eq!(id.as_bytes(), &bytes);
+    /// ```
     pub const fn from_bytes(bytes: [u8; 32]) -> Self {
         Self(bytes)
     }
@@ -21,6 +30,17 @@ impl ClaimId {
     }
 
     /// Get hex string representation
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::ClaimId;
+    ///
+    /// let bytes = [0xffu8; 32];
+    /// let id = ClaimId::from_bytes(bytes);
+    /// let hex = id.to_hex();
+    /// assert_eq!(hex.len(), 64); // 32 bytes * 2 hex chars
+    /// assert!(hex.chars().all(|c| c == 'f'));
+    /// ```
     pub fn to_hex(&self) -> String {
         hex::encode(self.0)
     }
@@ -58,6 +78,15 @@ pub enum ClaimType {
 
 impl ClaimType {
     /// Check if this is an empirical claim type (can receive survival-trackable attestations)
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::ClaimType;
+    ///
+    /// assert!(ClaimType::PrimaryClaim.is_empirical());
+    /// assert!(ClaimType::Result.is_empirical());
+    /// assert!(!ClaimType::Hypothesis.is_empirical());
+    /// ```
     pub const fn is_empirical(&self) -> bool {
         matches!(
             self,
@@ -88,6 +117,15 @@ pub enum AttestationVerdict {
 impl AttestationVerdict {
     /// Check if this verdict contributes to survival rate S
     /// (excludes Mentions per P-06)
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::AttestationVerdict;
+    ///
+    /// assert!(AttestationVerdict::Supports.contributes_to_survival());
+    /// assert!(AttestationVerdict::Replicates.contributes_to_survival());
+    /// assert!(!AttestationVerdict::Mentions.contributes_to_survival());
+    /// ```
     pub const fn contributes_to_survival(&self) -> bool {
         !matches!(self, Self::Mentions)
     }
