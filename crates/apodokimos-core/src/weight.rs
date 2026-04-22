@@ -71,7 +71,7 @@ impl OFactorSource {
     /// - Dataset: 0.85
     /// - Software: 0.80
     /// - Preprint: 0.70
-    /// - None: 0.50
+    /// - None: 1.0 (neutral, no penalty)
     pub fn factor_value(&self) -> f64 {
         match self {
             OFactorSource::PeerReviewed { .. } => 1.0,
@@ -80,23 +80,7 @@ impl OFactorSource {
             OFactorSource::Dataset { .. } => 0.85,
             OFactorSource::Software { .. } => 0.80,
             OFactorSource::Preprint { .. } => 0.70,
-            OFactorSource::None => 0.50,
-        }
-    }
-
-    /// Validate the oracle linkage (simplified - full validation needs external API)
-    pub fn is_valid(&self) -> bool {
-        match self {
-            OFactorSource::ClinicalTrial { registry_id } => !registry_id.is_empty(),
-            OFactorSource::SystematicReview { prospero_id } => !prospero_id.is_empty(),
-            OFactorSource::Preprint { doi } => !doi.is_empty(),
-            OFactorSource::PeerReviewed { doi } => !doi.is_empty(),
-            OFactorSource::Dataset { identifier } => !identifier.is_empty(),
-            OFactorSource::Software {
-                repository_url,
-                commit_hash,
-            } => !repository_url.is_empty() && !commit_hash.is_empty(),
-            OFactorSource::None => true,
+            OFactorSource::None => 1.0, // Neutral baseline, not a penalty
         }
     }
 }
@@ -202,7 +186,9 @@ impl WeightFunction {
     ) -> f64 {
         let blocks_elapsed = graph.current_block.saturating_sub(claim.registered);
         let days_elapsed = Self::blocks_to_days(blocks_elapsed, graph.block_time_seconds);
-        field_schema.compute_decay(days_elapsed as u32)
+        // Clamp to u32::MAX to prevent silent truncation (u32::MAX days ~ 11.7M years)
+        let days_clamped = days_elapsed.min(u32::MAX as u64) as u32;
+        field_schema.compute_decay(days_clamped)
     }
 
     /// Convert block count to days
@@ -216,27 +202,49 @@ impl WeightFunction {
     /// D = 1.0 / (1 + depth) where depth is max dependency chain length
     /// Claims with no dependencies have D = 1.0 (highest weight)
     fn compute_depth(claim: &Claim, graph: &GraphSnapshot) -> f64 {
-        let max_depth = Self::find_max_depth(&claim.depends_on, graph, 0);
+        let mut visited = BTreeMap::new();
+        let max_depth = Self::find_max_depth(&claim.depends_on, graph, 0, &mut visited);
         1.0 / (1.0 + max_depth as f64)
     }
 
-    /// Find maximum dependency depth using DFS
-    fn find_max_depth(dependencies: &[ClaimId], graph: &GraphSnapshot, current_depth: u32) -> u32 {
+    /// Find maximum dependency depth using DFS with cycle detection
+    fn find_max_depth(
+        dependencies: &[ClaimId],
+        graph: &GraphSnapshot,
+        current_depth: u32,
+        visited: &mut BTreeMap<ClaimId, u32>,
+    ) -> u32 {
         if dependencies.is_empty() {
             return current_depth;
         }
 
         let mut max_depth = current_depth;
         for dep_id in dependencies {
+            // Cycle detection: skip if already visited at this depth or shallower
+            if let Some(&prev_depth) = visited.get(dep_id) {
+                if prev_depth <= current_depth {
+                    continue; // Already processed this path
+                }
+            }
+
             let next_depth = current_depth.saturating_add(1);
+
+            // Cap at depth 10 to prevent extreme attenuation and stack overflow
+            if next_depth >= 10 {
+                return 10;
+            }
+
+            visited.insert(*dep_id, current_depth);
+
             if let Some(dep_claim) = graph.get_claim(dep_id) {
-                let sub_depth = Self::find_max_depth(&dep_claim.depends_on, graph, next_depth);
+                let sub_depth =
+                    Self::find_max_depth(&dep_claim.depends_on, graph, next_depth, visited);
                 max_depth = max_depth.max(sub_depth);
             } else {
                 max_depth = max_depth.max(next_depth);
             }
         }
-        max_depth.min(10) // Cap at depth 10 to prevent extreme attenuation
+        max_depth
     }
 
     /// Compute S — survival rate (C-17)
@@ -311,15 +319,16 @@ impl WeightFunction {
             .filter(|c| c.depends_directly_on(claim_id))
             .collect();
 
+        // Penalty factor: 0.5 at depth 1, 0.25 at depth 2, etc. (halving each level)
+        let penalty_factor = 0.5f64.powi(cascade_depth as i32);
+
         for dependent in dependents {
-            // Skip if already visited with lower depth
-            if let Some(&prev_depth) = visited.get(&dependent.id) {
-                if prev_depth <= cascade_depth as f64 {
-                    continue;
-                }
+            // Skip if already visited at any depth (prevent duplicates)
+            if visited.contains_key(&dependent.id) {
+                continue;
             }
 
-            // Compute weight before and after
+            // Compute baseline weight
             let previous_weight = match Self::compute(&dependent.id, graph, field_schema, oracle) {
                 Ok(w) => w.value,
                 Err(_) => continue,
@@ -328,12 +337,8 @@ impl WeightFunction {
             // Mark as visited
             visited.insert(dependent.id, cascade_depth as f64);
 
-            // Recompute with penalty (handled by survival rate naturally
-            // since retraction would add contradicting attestations)
-            let new_weight = match Self::compute(&dependent.id, graph, field_schema, oracle) {
-                Ok(w) => w.value,
-                Err(_) => continue,
-            };
+            // Apply penalty based on cascade depth
+            let new_weight = previous_weight * penalty_factor;
 
             affected.push(AffectedClaim {
                 claim_id: dependent.id,
@@ -342,8 +347,8 @@ impl WeightFunction {
                 cascade_depth,
             });
 
-            // Continue cascade if depth allows
-            if cascade_depth < 5 {
+            // Continue cascade if depth allows and weight still significant
+            if cascade_depth < 5 && new_weight > 0.01 {
                 Self::propagate_recursive(
                     &dependent.id,
                     graph,
@@ -579,18 +584,19 @@ mod proptests {
             systematic_review
         );
 
-        // Generally decreasing credibility
+        // Generally decreasing credibility (None is neutral baseline at 1.0)
         assert!(
             clinical_trial >= preprint,
             "ClinicalTrial ({}) should be >= Preprint ({})",
             clinical_trial,
             preprint
         );
+        // None is neutral (1.0), higher than Preprint (0.70) but not a credibility ranking
         assert!(
-            preprint >= none,
-            "Preprint ({}) should be >= None ({})",
-            preprint,
-            none
+            none >= preprint,
+            "None ({}) should be >= Preprint ({}) - neutral baseline",
+            none,
+            preprint
         );
     }
 }
@@ -655,7 +661,7 @@ mod tests {
             .factor_value(),
             0.70
         );
-        assert_eq!(OFactorSource::None.factor_value(), 0.50);
+        assert_eq!(OFactorSource::None.factor_value(), 1.0);
     }
 
     #[test]
