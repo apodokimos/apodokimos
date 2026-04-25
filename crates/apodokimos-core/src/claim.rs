@@ -317,7 +317,7 @@ mod tests {
             ClaimType::PrimaryClaim,
             "clinical-medicine",
             r#"{"population":"adults","intervention":"drug A","outcome":"survival"}"#,
-            "did:substrate:apodokimos:abc123",
+            "did:apodokimos:abc123",
             vec![],
             "Xy_wY5mer8OHEX8QhdJW7w0L983Fz86k6gQaM8XEweM",
             1000,
@@ -355,7 +355,7 @@ mod tests {
         let att = Attestation::new(
             "att-001",
             claim_id,
-            "did:substrate:apodokimos:reviewer1",
+            "did:apodokimos:reviewer1",
             AttestationVerdict::Replicates,
             Some("evidence_tx_123"),
             1000,

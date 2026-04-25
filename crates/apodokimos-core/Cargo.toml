@@ -20,5 +20,5 @@ proptest = { version = "1.5" }
 
 [features]
 default = ["std"]
-std = ["thiserror/std", "serde/std", "serde_json/std", "blake3/std"]
+std = ["thiserror/std", "serde/std", "serde_json/std", "blake3/std", "hex/std"]
 

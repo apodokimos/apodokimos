@@ -20,7 +20,8 @@ pub struct ClaimWeight {
     pub recency: f64,
     /// Dependency depth factor [0.0, 1.0]
     pub depth: f64,
-    /// Survival rate [0.0, 1.0]
+    /// Survival rate [0.1, 1.0] — floor of 0.1 applied (uncertainty preservation;
+    /// wp-v0.2 replaces this with Laplace smoothing, see C-24)
     pub survival: f64,
     /// Oracle factor [0.0, 1.0]
     pub oracle: f64,
@@ -202,17 +203,22 @@ impl WeightFunction {
     /// D = 1.0 / (1 + depth) where depth is max dependency chain length
     /// Claims with no dependencies have D = 1.0 (highest weight)
     fn compute_depth(claim: &Claim, graph: &GraphSnapshot) -> f64 {
-        let mut visited = BTreeMap::new();
-        let max_depth = Self::find_max_depth(&claim.depends_on, graph, 0, &mut visited);
+        let mut in_stack = BTreeMap::new();
+        in_stack.insert(claim.id, ());
+        let max_depth = Self::find_max_depth(&claim.depends_on, graph, 0, &mut in_stack);
         1.0 / (1.0 + max_depth as f64)
     }
 
-    /// Find maximum dependency depth using DFS with cycle detection
+    /// Find maximum dependency depth using DFS with cycle detection.
+    ///
+    /// `in_stack` tracks the current DFS recursion path for cycle detection only.
+    /// Every branch of a diamond-shaped DAG is explored independently so that the
+    /// true maximum depth is always found regardless of dependency list order.
     fn find_max_depth(
         dependencies: &[ClaimId],
         graph: &GraphSnapshot,
         current_depth: u32,
-        visited: &mut BTreeMap<ClaimId, u32>,
+        in_stack: &mut BTreeMap<ClaimId, ()>,
     ) -> u32 {
         if dependencies.is_empty() {
             return current_depth;
@@ -220,29 +226,32 @@ impl WeightFunction {
 
         let mut max_depth = current_depth;
         for dep_id in dependencies {
-            // Cycle detection: skip if already visited at this depth or shallower
-            if let Some(&prev_depth) = visited.get(dep_id) {
-                if prev_depth <= current_depth {
-                    continue; // Already processed this path
-                }
+            // Cycle detection: skip nodes already on the current DFS path.
+            // This is the only pruning we do — every non-cyclic branch is explored
+            // fully so that diamonds and shared nodes are handled correctly.
+            if in_stack.contains_key(dep_id) {
+                continue;
             }
 
             let next_depth = current_depth.saturating_add(1);
 
-            // Cap at depth 10 to prevent extreme attenuation and stack overflow
+            // Cap at depth 10 to prevent extreme attenuation and stack overflow.
             if next_depth >= 10 {
-                return 10;
+                max_depth = max_depth.max(10);
+                continue;
             }
 
-            visited.insert(*dep_id, current_depth);
+            in_stack.insert(*dep_id, ());
 
             if let Some(dep_claim) = graph.get_claim(dep_id) {
                 let sub_depth =
-                    Self::find_max_depth(&dep_claim.depends_on, graph, next_depth, visited);
+                    Self::find_max_depth(&dep_claim.depends_on, graph, next_depth, in_stack);
                 max_depth = max_depth.max(sub_depth);
             } else {
                 max_depth = max_depth.max(next_depth);
             }
+
+            in_stack.remove(dep_id);
         }
         max_depth
     }
@@ -250,7 +259,12 @@ impl WeightFunction {
     /// Compute S — survival rate (C-17)
     ///
     /// S = supporting_attestations / total_non_mentioning_attestations
-    /// Returns 1.0 (neutral) if no survival-trackable attestations exist
+    /// Returns 1.0 (neutral) if no survival-trackable attestations exist.
+    ///
+    /// A floor of 0.1 is applied so that a fully-contradicted claim retains a small
+    /// positive weight (epistemic uncertainty preservation). This is a wp-v0.1
+    /// implementation choice; wp-v0.2 replaces it with explicit Laplace smoothing
+    /// (see C-24, wp-v0.2 §3.4). The effective range is therefore [0.1, 1.0].
     fn compute_survival(claim_id: &ClaimId, graph: &GraphSnapshot) -> f64 {
         let attestations = graph.get_attestations(claim_id);
 
@@ -275,91 +289,84 @@ impl WeightFunction {
         }
 
         let survival_rate = supporting as f64 / total as f64;
-        // Apply floor at 0.1 to prevent complete zeroing (uncertainty preservation)
         survival_rate.max(0.1)
     }
 
     /// Propagate retraction penalty through dependency graph (C-19)
     ///
-    /// Returns list of affected claims with weight changes
+    /// Uses BFS ordered by cascade depth so that each dependent claim always
+    /// receives the penalty from the *shortest* path from the retracted claim,
+    /// regardless of `BTreeMap` iteration order. This guarantees deterministic
+    /// results on any graph topology (R8/R9).
+    ///
+    /// Penalty factor: 0.5^depth — 0.5 at depth 1, 0.25 at depth 2, etc.
     pub fn propagate_retraction(
         retracted_claim_id: &ClaimId,
         graph: &GraphSnapshot,
         field_schema: &dyn FieldSchema,
     ) -> Vec<AffectedClaim> {
+        let oracle = OFactorSource::None;
         let mut affected = Vec::new();
-        let mut visited = BTreeMap::new();
+        // BFS frontier: (claim_id, cascade_depth)
+        // Using a Vec as a FIFO queue; depth increases monotonically so earlier
+        // entries always have depth <= later entries (BFS property).
+        let mut queue: Vec<(ClaimId, u32)> = Vec::new();
+        // Track the minimum cascade_depth at which each claim was first reached.
+        let mut visited: BTreeMap<ClaimId, u32> = BTreeMap::new();
 
-        Self::propagate_recursive(
-            retracted_claim_id,
-            graph,
-            field_schema,
-            &OFactorSource::None,
-            1,
-            &mut affected,
-            &mut visited,
-        );
+        // Seed: direct dependents of the retracted claim at depth 1
+        for claim in graph.claims.values() {
+            if claim.depends_directly_on(retracted_claim_id) {
+                if !visited.contains_key(&claim.id) {
+                    visited.insert(claim.id, 1);
+                    queue.push((claim.id, 1));
+                }
+            }
+        }
 
-        affected
-    }
+        let mut head = 0;
+        while head < queue.len() {
+            let (claim_id, cascade_depth) = queue[head];
+            head += 1;
 
-    fn propagate_recursive(
-        claim_id: &ClaimId,
-        graph: &GraphSnapshot,
-        field_schema: &dyn FieldSchema,
-        oracle: &OFactorSource,
-        cascade_depth: u32,
-        affected: &mut Vec<AffectedClaim>,
-        visited: &mut BTreeMap<ClaimId, f64>,
-    ) {
-        // Find claims that depend on this one
-        let dependents: Vec<&Claim> = graph
-            .claims
-            .values()
-            .filter(|c| c.depends_directly_on(claim_id))
-            .collect();
-
-        // Penalty factor: 0.5 at depth 1, 0.25 at depth 2, etc. (halving each level)
-        let penalty_factor = 0.5f64.powi(cascade_depth as i32);
-
-        for dependent in dependents {
-            // Skip if already visited at any depth (prevent duplicates)
-            if visited.contains_key(&dependent.id) {
+            // Hard cap: matches the depth limit used in find_max_depth
+            if cascade_depth > 5 {
                 continue;
             }
 
-            // Compute baseline weight
-            let previous_weight = match Self::compute(&dependent.id, graph, field_schema, oracle) {
+            let penalty_factor = 0.5f64.powi(cascade_depth as i32);
+
+            let previous_weight = match Self::compute(&claim_id, graph, field_schema, &oracle) {
                 Ok(w) => w.value,
                 Err(_) => continue,
             };
 
-            // Mark as visited
-            visited.insert(dependent.id, cascade_depth as f64);
-
-            // Apply penalty based on cascade depth
             let new_weight = previous_weight * penalty_factor;
 
             affected.push(AffectedClaim {
-                claim_id: dependent.id,
+                claim_id,
                 previous_weight,
                 new_weight,
                 cascade_depth,
             });
 
-            // Continue cascade if depth allows and weight still significant
-            if cascade_depth < 5 && new_weight > 0.01 {
-                Self::propagate_recursive(
-                    &dependent.id,
-                    graph,
-                    field_schema,
-                    oracle,
-                    cascade_depth.saturating_add(1),
-                    affected,
-                    visited,
-                );
+            // Only continue cascade if weight is still significant
+            if new_weight <= 0.01 {
+                continue;
+            }
+
+            let next_depth = cascade_depth.saturating_add(1);
+            for candidate in graph.claims.values() {
+                if candidate.depends_directly_on(&claim_id)
+                    && !visited.contains_key(&candidate.id)
+                {
+                    visited.insert(candidate.id, next_depth);
+                    queue.push((candidate.id, next_depth));
+                }
             }
         }
+
+        affected
     }
 }
 
@@ -837,5 +844,95 @@ mod tests {
 
         let affected = WeightFunction::propagate_retraction(&claim.id, &graph, &field);
         assert!(affected.is_empty());
+    }
+
+    /// Regression test for Bug 1: diamond DAG must produce the correct max depth
+    /// regardless of dependency list order.
+    ///
+    /// Graph:    X -> [B, A], A -> [B]   (diamond; longest path X->A->B has depth 2)
+    /// BTreeMap iteration of X.depends_on used to process B first, inserting
+    /// visited[B]=0, then when recursing through A the B branch was wrongly skipped,
+    /// returning depth 1 instead of 2.
+    #[test]
+    fn depth_diamond_dag_order_independent() {
+        let b = create_test_claim(2, vec![], 0);
+        let a = create_test_claim(3, vec![b.id], 0);
+        // X depends on both A and B; longest path is X->A->B (depth 2)
+        let x = create_test_claim(1, vec![b.id, a.id], 0);
+
+        let graph = GraphSnapshot::new(
+            BTreeMap::from([(b.id, b), (a.id, a), (x.id, x.clone())]),
+            BTreeMap::new(),
+            100,
+            6,
+        );
+
+        let depth = WeightFunction::compute_depth(&x, &graph);
+        // depth 2 => D = 1/(1+2) = 0.333...
+        assert!(
+            (depth - (1.0 / 3.0)).abs() < 1e-10,
+            "diamond DAG depth should be 2 (D=1/3), got D={depth}"
+        );
+
+        // Also verify with reversed dependency order: X -> [A, B]
+        let b2 = create_test_claim(2, vec![], 0);
+        let a2 = create_test_claim(3, vec![b2.id], 0);
+        let x2 = create_test_claim(1, vec![a2.id, b2.id], 0);
+        let graph2 = GraphSnapshot::new(
+            BTreeMap::from([(b2.id, b2), (a2.id, a2), (x2.id, x2.clone())]),
+            BTreeMap::new(),
+            100,
+            6,
+        );
+        let depth2 = WeightFunction::compute_depth(&x2, &graph2);
+        assert!(
+            (depth2 - depth).abs() < 1e-10,
+            "depth must be identical regardless of dependency order: {depth} vs {depth2}"
+        );
+    }
+
+    /// Regression test for Bug 2: retraction cascade must assign each dependent
+    /// the penalty of the *shortest* path from the retracted claim, not an
+    /// order-dependent path.
+    ///
+    /// Graph: retract A; D depends on A (depth 1); C depends on A (depth 1)
+    ///        and C also depends on D (but D is at depth 1).
+    /// Both C and D are direct dependents of A, so both should get penalty 0.5.
+    #[test]
+    fn retraction_cascade_direct_deps_get_depth_one_penalty() {
+        let field = ClinicalMedicine::new();
+
+        // A is the retracted claim
+        let a = create_test_claim(1, vec![], 0);
+        // D directly depends on A
+        let d = create_test_claim(4, vec![a.id], 0);
+        // C directly depends on A AND on D
+        let c = create_test_claim(3, vec![a.id, d.id], 0);
+
+        let graph = GraphSnapshot::new(
+            BTreeMap::from([(a.id, a.clone()), (d.id, d.clone()), (c.id, c.clone())]),
+            BTreeMap::new(),
+            100,
+            6,
+        );
+
+        let affected = WeightFunction::propagate_retraction(&a.id, &graph, &field);
+
+        // Both C and D must appear in the affected list
+        let find = |id: ClaimId| affected.iter().find(|ac| ac.claim_id == id).cloned();
+        let c_affected = find(c.id).expect("C must be affected");
+        let d_affected = find(d.id).expect("D must be affected");
+
+        // Both are direct dependents of A, so cascade_depth must be 1 for both
+        assert_eq!(
+            d_affected.cascade_depth, 1,
+            "D is a direct dep of A; must get cascade_depth=1, got {}",
+            d_affected.cascade_depth
+        );
+        assert_eq!(
+            c_affected.cascade_depth, 1,
+            "C is a direct dep of A; must get cascade_depth=1, got {}",
+            c_affected.cascade_depth
+        );
     }
 }
