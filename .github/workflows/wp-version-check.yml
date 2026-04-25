@@ -1,0 +1,37 @@
+name: Whitepaper Version DOI Consistency Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  version-check:
+    name: Verify WHITEPAPER_v0.2.md Version DOI matches README
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract Version DOI from README
+        id: readme_doi
+        run: |
+          set -euo pipefail
+          # Extract the DOI from the "Current" row in the README table
+          DOI=$(grep -A1 'wp-v0.2' README.md | grep -oP '\[\K10\.5281/zenodo\.\d+(?=\])')
+          if [ -z "$DOI" ]; then
+            echo "ERROR: Could not extract wp-v0.2 Version DOI from README.md"
+            exit 1
+          fi
+          echo "doi=$DOI" >> "$GITHUB_OUTPUT"
+          echo "README current DOI: $DOI"
+      - name: Verify DOI appears in WHITEPAPER_v0.2.md header
+        run: |
+          set -euo pipefail
+          DOI="${{ steps.readme_doi.outputs.doi }}"
+          # Check that the DOI string appears somewhere in the whitepaper file
+          if ! grep -q "$DOI" WHITEPAPER/WHITEPAPER_v0.2.md; then
+            echo "ERROR: Version DOI $DOI from README does not appear in WHITEPAPER/WHITEPAPER_v0.2.md"
+            echo "The README's 'Current' DOI must match the DOI referenced in the whitepaper artifact."
+            exit 1
+          fi
+          echo "OK: DOI $DOI found in WHITEPAPER_v0.2.md"

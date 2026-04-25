@@ -48,9 +48,9 @@ SemVer milestones marked as `### vX.Y.Z`.
 ### v0.2 additions
 
 - [x] F-25 — Create `.github/workflows/wp-placeholder-lint.yml` — fail any merge to `main` containing `<TO-BE-ASSIGNED-AT-ANCHOR>` or other placeholder strings inside `WHITEPAPER/` artifacts (per wp-v0.2 §1.6 documentation hygiene)
-- [ ] F-26 — Scaffold `governance/` directory: `genesis.toml` template (DIDs + public keys + threshold k), `actions/` for signed governance records (per wp-v0.2 §7.5)
-- [ ] F-27 — Add `WHITEPAPER/` directory layout: `WHITEPAPER.md` (wp-v0.1, preserved), `WHITEPAPER_v0.2.md` (current); README cross-references the Version DOI table
-- [ ] F-28 — Add `.github/workflows/wp-version-check.yml` — verify the current `WHITEPAPER_v0.2.md` Version DOI matches the README's "Current" entry
+- [x] F-26 — Scaffold `governance/` directory: `genesis.toml` template (DIDs + public keys + threshold k), `actions/` for signed governance records (per wp-v0.2 §7.5)
+- [x] F-27 — Add `WHITEPAPER/` directory layout: `WHITEPAPER.md` (wp-v0.1, preserved), `WHITEPAPER_v0.2.md` (current); README cross-references the Version DOI table
+- [x] F-28 — Add `.github/workflows/wp-version-check.yml` — verify the current `WHITEPAPER_v0.2.md` Version DOI matches the README's "Current" entry
 
 ---
 

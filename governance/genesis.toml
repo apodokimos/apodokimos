@@ -1,0 +1,36 @@
+# Apodokimos Genesis Governance Set
+# Per whitepaper wp-v0.2 §7.5 — k-of-n multi-signature governance.
+# This file defines the initial set of authorized signers and the threshold.
+# Future rotations are performed via signed governance actions recorded in actions/.
+
+# Minimum number of valid signatures required to execute a governance action.
+# Must be > n/2 for Byzantine safety (k > n/2).
+threshold = 3
+
+# Initial authorized signers.
+# Each entry binds a W3C DID to an Ed25519 public key (hex, 64 bytes).
+# These DIDs are identity-bound and non-transferable by construction.
+[[signer]]
+did = "did:apodokimos:GENESIS_1"
+public_key = "<TO-BE-ASSIGNED-AT-ANCHOR>"
+
+[[signer]]
+did = "did:apodokimos:GENESIS_2"
+public_key = "<TO-BE-ASSIGNED-AT-ANCHOR>"
+
+[[signer]]
+did = "did:apodokimos:GENESIS_3"
+public_key = "<TO-BE-ASSIGNED-AT-ANCHOR>"
+
+[[signer]]
+did = "did:apodokimos:GENESIS_4"
+public_key = "<TO-BE-ASSIGNED-AT-ANCHOR>"
+
+[[signer]]
+did = "did:apodokimos:GENESIS_5"
+public_key = "<TO-BE-ASSIGNED-AT-ANCHOR>"
+
+# Timelock period for governance actions, in hours.
+# Actions must be published and visible for this duration before they can be
+# enacted, allowing independent operators to review and potentially flag.
+timelock_hours = 168
