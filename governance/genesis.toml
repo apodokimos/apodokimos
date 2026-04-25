@@ -8,7 +8,7 @@
 threshold = 3
 
 # Initial authorized signers.
-# Each entry binds a W3C DID to an Ed25519 public key (hex, 64 bytes).
+# Each entry binds a W3C DID to an Ed25519 public key (32 bytes, hex-encoded as 64 characters).
 # These DIDs are identity-bound and non-transferable by construction.
 [[signer]]
 did = "did:apodokimos:GENESIS_1"

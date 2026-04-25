@@ -18,7 +18,7 @@ jobs:
           placeholders=(
             '<TO-BE-ASSIGNED-AT-ANCHOR>'
             'TODO: ASSIGN DOI'
-            'PLACEHOLDER'
+            '<PLACEHOLDER>'
           )
           found=0
           for ph in "${placeholders[@]}"; do
