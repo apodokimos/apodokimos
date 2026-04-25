@@ -26,7 +26,7 @@ W(c, t) = R(c, t) × D̃(c) × S(c) × (1 + γ · O(c)) × δ(c)
 | Change | Rationale |
 |--------|-----------|
 | Laplace smoothing for `R(c, t)` | Uniform Beta prior (α = β = 1) prevents zero weight for newly-registered claims with no replication data |
-| Log-normalized `D̃(c) = [1 + log(1 + D)] / [1 + log(1 + D_ref_field)]` | Prevents dependency-depth dominance; terminal claims (D = 0) carry non-zero weight |
+| Log-normalized `D̃(c) = [1 + log(1 + D)] / [1 + log(1 + D_ref_field)]` where `D_ref_field` is a per-field reference depth set by governance at genesis | Prevents dependency-depth dominance; terminal claims (D = 0) carry non-zero weight |
 | Laplace smoothing for `S(c)` | Uniform prior prevents zero weight for unattested claims |
 | Multiplicative bonus `(1 + γ · O)` instead of direct multiplier | Basic-science claims (O = 0) are not penalized; O = 1 yields weight × (1 + γ) |
 | Explicit retraction discount `δ(c)` | Penalty from retraction cascades through the graph with `W_pre` snapshot preservation; avoids silent zeroing of dependent claims |
@@ -35,7 +35,7 @@ Each factor has a strictly positive baseline. A newly-registered claim, a termin
 
 ### Cross-Field Voting Correction (§7.1)
 
-The cross-field voting weight formula was corrected from a geometric mean (which could collapse to zero) to an arithmetic mean over non-zero field scores:
+The cross-field voting weight formula was corrected from a geometric mean (which zeroes out whenever any field score is zero, making specialists with non-zero score in exactly one field ineligible to vote on cross-field proposals) to an arithmetic mean over non-zero field scores:
 
 ```
 # wp-v0.1 (incorrect)
@@ -51,7 +51,7 @@ A specialist active in exactly one field retains their full field-specific weigh
 
 The distinction between **Version DOI** and **Concept DOI** is now explicit:
 
-- **Version DOI** (`10.5281/zenodo.XXXXX`) — immutable per-version identifier. Used in all archival contexts: claim metadata, source code comments, academic citations, anchored documents.
+- **Version DOI** (e.g., `10.5281/zenodo.19763292` for wp-v0.2) — immutable per-version identifier. Used in all archival contexts: claim metadata, source code comments, academic citations, anchored documents.
 - **Concept DOI** — moving pointer to the latest version. Used in README links, onboarding documentation, and for navigation within Zenodo. Never used for archival citation.
 
 **Placeholder discipline:** Draft whitepaper versions use the literal string `<TO-BE-ASSIGNED-AT-ANCHOR>` as a placeholder for the Version DOI until anchoring. CI rejects merges to `main` containing this string inside `WHITEPAPER/` artifacts.
