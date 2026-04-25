@@ -1,7 +1,7 @@
 # Apodokimos: A Decentralized Epistemic Contribution Graph for Scientific Claim Evaluation
 
 **Version:** wp-v0.1  
-**Status:** Draft  
+**Status:** Superseded by wp-v0.2 (Version DOI: [10.5281/zenodo.19763292](https://doi.org/10.5281/zenodo.19763292))  
 **License:** CC0-1.0  
 **Site:** https://apodokimos.science  
 **Repository:** https://github.com/apodokimos/apodokimos  

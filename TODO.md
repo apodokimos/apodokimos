@@ -99,11 +99,11 @@ SemVer milestones marked as `### vX.Y.Z`.
 > Specification-level tasks introduced or completed in the wp-v0.2 round. Distinct from implementation tasks (those are in Phase 2'+).
 
 - [x] V-01 — Anchor `WHITEPAPER_v0.2.md` to Zenodo as new version of wp-v0.1 record (Version DOI: `10.5281/zenodo.19763292`)
-- [ ] V-02 — Commit `WHITEPAPER/WHITEPAPER_v0.2.md` to repo with header pointing at its own Version DOI
-- [ ] V-03 — Update `WHITEPAPER/WHITEPAPER.md` (wp-v0.1) header to add a "Superseded by" pointer to wp-v0.2 *(metadata-only edit, document bytes preserved)*
-- [ ] V-04 — Document the wp-v0.2 W(c, t) revision in a `CHANGELOG-WHITEPAPER.md` at repo root: Laplace smoothing for R and S, log-normalized D̃, multiplicative O bonus, explicit δ retraction discount (per wp-v0.2 Appendix D)
-- [ ] V-05 — Document the wp-v0.2 cross-field voting correction (geomean → arithmetic mean over non-zero) in `CHANGELOG-WHITEPAPER.md`
-- [ ] V-06 — Document the §1.6 versioning convention in `CHANGELOG-WHITEPAPER.md`: Version DOI for archival, Concept DOI for navigation, placeholder discipline for drafts
+- [x] V-02 — Commit `WHITEPAPER/WHITEPAPER_v0.2.md` to repo with header pointing at its own Version DOI
+- [x] V-03 — Update `WHITEPAPER/WHITEPAPER.md` (wp-v0.1) header to add a "Superseded by" pointer to wp-v0.2 *(metadata-only edit, document bytes preserved)*
+- [x] V-04 — Document the wp-v0.2 W(c, t) revision in a `CHANGELOG-WHITEPAPER.md` at repo root: Laplace smoothing for R and S, log-normalized D̃, multiplicative O bonus, explicit δ retraction discount (per wp-v0.2 Appendix D)
+- [x] V-05 — Document the wp-v0.2 cross-field voting correction (geomean → arithmetic mean over non-zero) in `CHANGELOG-WHITEPAPER.md`
+- [x] V-06 — Document the §1.6 versioning convention in `CHANGELOG-WHITEPAPER.md`: Version DOI for archival, Concept DOI for navigation, placeholder discipline for drafts
 - [ ] V-07 — Once Concept DOI is visible on Zenodo's Versions panel, update README to display it explicitly (currently a forward-pointer)
 - [ ] V-08 — Register wp-v0.2 as the first ECG claim on testnet, with `spec_version_doi = 10.5281/zenodo.19763292` *(blocks on RI- testnet readiness; supersedes P-11n)*
 
