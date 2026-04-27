@@ -49,6 +49,7 @@ impl VersionDOI {
     ///
     /// # Panics
     /// Panics if the string is not a valid DOI format (only used with known-valid constants).
+    #[track_caller]
     pub fn new_static(doi: &'static str) -> Self {
         Self::validate(doi).expect("static DOI must be valid");
         Self(doi.into())

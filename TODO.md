@@ -139,10 +139,10 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ### `v0.3.0` — wp-v0.2 math correction
 
-- [ ] C-21 — Add `spec_version_doi: VersionDOI` field to `Claim` struct (per wp-v0.2 §2.2); add `version_doi.rs` module with `VersionDOI` newtype + parsing/validation
-- [ ] C-22 — Reimplement R(c, t) with Laplace smoothing (uniform Beta prior, default α=β=1); reparameterize time-decay as `2^(−Δt/t_½)` per wp-v0.2 §3.2
-- [ ] C-23 — Reimplement D̃(c) as log-normalized depth `[1 + log(1+D)] / [1 + log(1+D_ref_field)]` per wp-v0.2 §3.3
-- [ ] C-24 — Reimplement S(c) with Laplace smoothing per wp-v0.2 §3.4
+- [x] C-21 — Add `spec_version_doi: VersionDOI` field to `Claim` struct (per wp-v0.2 §2.2); add `version_doi.rs` module with `VersionDOI` newtype + parsing/validation
+- [x] C-22 — Reimplement R(c, t) with Laplace smoothing (uniform Beta prior, default α=β=1); reparameterize time-decay as `2^(−Δt/t_½)` per wp-v0.2 §3.2
+- [x] C-23 — Reimplement D̃(c) as log-normalized depth `[1 + log(1+D)] / [1 + log(1+D_ref_field)]` per wp-v0.2 §3.3
+- [x] C-24 — Reimplement S(c) with Laplace smoothing per wp-v0.2 §3.4
 - [ ] C-25 — Reimplement `WeightFunction::compute` with formula `W = R × D̃ × S × (1 + γ·O) × δ` per wp-v0.2 §3.1
 - [ ] C-26 — Reimplement O factor as `O ∈ [0, 1]` (drop the `{0} ∪ [0.1, 1.0]` discontinuity); enter as `(1 + γ·O)` bonus rather than direct multiplier per wp-v0.2 §3.5
 - [ ] C-27 — Add `δ(c)` retraction discount field; implement `propagate_retraction` operating on δ with `W_pre` snapshot per wp-v0.2 §5.2

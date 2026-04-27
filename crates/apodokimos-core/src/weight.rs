@@ -212,9 +212,9 @@ impl WeightFunction {
     /// - ln = natural logarithm
     ///
     /// This log-normalization is "softer" than the wp-v0.1 linear penalty:
-    /// - D = 0 (no deps): D̃ = 1.0 / [1 + ln(1+D_ref)] (slight boost for standalone claims)
+    /// - D = 0: D̃ = 1.0 / [1 + ln(1+D_ref)] (< 1.0 for D_ref > 0; claims shallower than D_ref)
     /// - D = D_ref: D̃ = 1.0 (reference normalization)
-    /// - D > D_ref: D̃ < 1.0 (logarithmic penalty for deep chains)
+    /// - D > D_ref: D̃ > 1.0 (logarithmic boost for deep chains)
     fn compute_depth(
         claim: &Claim,
         graph: &GraphSnapshot,
