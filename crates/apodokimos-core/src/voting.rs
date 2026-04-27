@@ -322,4 +322,169 @@ mod tests {
             "4x score increase should give 2x weight (sqrt relationship)"
         );
     }
+
+    // =========================================================================
+    // C-32: Sybil-resistance documentation test (wp-v0.2 §12.1)
+    // =========================================================================
+
+    /// Test: Quadratic voting INCREASES total weight under fragmentation (C-32, wp-v0.2 §12.1)
+    ///
+    /// This test documents a critical property: quadratic voting (sqrt) is NOT
+    /// Sybil-resistant. Fragmenting a score across multiple accounts increases
+    /// total voting power because sqrt is subadditive.
+    ///
+    /// Mathematical proof:
+    /// - Single account with score S: weight = sqrt(S)
+    /// - N accounts each with score S/N: total = N × sqrt(S/N) = sqrt(N) × sqrt(S)
+    /// - Since sqrt(N) > 1 for N > 1, fragmentation increases total weight
+    ///
+    /// Sybil resistance in Apodokimos comes from SBT-accumulation cost (§6.3),
+    /// NOT from the voting formula. Quadratic voting addresses concentration
+    /// resistance; SBT-cost addresses Sybil resistance.
+    #[test]
+    fn quadratic_voting_increases_weight_under_fragmentation() {
+        let total_score = 10000u64;
+
+        // Single account with all 10,000 score
+        let single = AccountSbt::new("did:single").with_field_score("field", total_score);
+        let single_weight = single.field_vote_weight("field").unwrap();
+        // sqrt(10000) = 100
+        assert!((single_weight - 100.0).abs() < 1e-10);
+
+        // Fragmented into 2 accounts with 5,000 each
+        let frag2_a = AccountSbt::new("did:frag2-a").with_field_score("field", 5000);
+        let frag2_b = AccountSbt::new("did:frag2-b").with_field_score("field", 5000);
+        let frag2_weight_a = frag2_a.field_vote_weight("field").unwrap(); // sqrt(5000) ≈ 70.71
+        let frag2_weight_b = frag2_b.field_vote_weight("field").unwrap(); // sqrt(5000) ≈ 70.71
+        let frag2_total = frag2_weight_a + frag2_weight_b;
+        // Total: 2 × sqrt(5000) = 2 × 70.71 = 141.42
+        assert!((frag2_total - 141.4213562373095).abs() < 1e-10);
+
+        // Fragmented into 4 accounts with 2,500 each
+        let frag4: Vec<_> = (0..4)
+            .map(|i| AccountSbt::new(format!("did:frag4-{}", i)).with_field_score("field", 2500))
+            .collect();
+        let frag4_total: f64 = frag4.iter().filter_map(|a| a.field_vote_weight("field")).sum();
+        // Total: 4 × sqrt(2500) = 4 × 50 = 200
+        assert!((frag4_total - 200.0).abs() < 1e-10);
+
+        // Fragmented into 10 accounts with 1,000 each
+        let frag10: Vec<_> = (0..10)
+            .map(|i| AccountSbt::new(format!("did:frag10-{}", i)).with_field_score("field", 1000))
+            .collect();
+        let frag10_total: f64 = frag10.iter().filter_map(|a| a.field_vote_weight("field")).sum();
+        // Total: 10 × sqrt(1000) = 10 × 31.62 = 316.23
+        assert!((frag10_total - 316.22776601683796).abs() < 1e-10);
+
+        // Fragmented into 100 accounts with 100 each
+        let frag100: Vec<_> = (0..100)
+            .map(|i| AccountSbt::new(format!("did:frag100-{}", i)).with_field_score("field", 100))
+            .collect();
+        let frag100_total: f64 = frag100.iter().filter_map(|a| a.field_vote_weight("field")).sum();
+        // Total: 100 × sqrt(100) = 100 × 10 = 1000
+        assert!((frag100_total - 1000.0).abs() < 1e-10);
+
+        // Verify the mathematical relationship: frag_total = sqrt(N) × single_weight
+        // where N is the number of fragments
+        let test_cases: Vec<(f64, f64)> = vec![
+            (2.0, frag2_total),
+            (4.0, frag4_total),
+            (10.0, frag10_total),
+            (100.0, frag100_total),
+        ];
+
+        for (n, actual_total) in test_cases {
+            let expected_multiplier = n.sqrt();
+            let expected_total = expected_multiplier * single_weight;
+            assert!(
+                (actual_total - expected_total).abs() < 1e-10,
+                "With {} fragments: expected {}× single weight = {}, got {}",
+                n, expected_multiplier, expected_total, actual_total
+            );
+        }
+
+        // The critical insight: more fragments = more total weight
+        assert!(
+            frag2_total > single_weight,
+            "2 fragments should exceed single account weight"
+        );
+        assert!(
+            frag4_total > frag2_total,
+            "4 fragments should exceed 2 fragments"
+        );
+        assert!(
+            frag10_total > frag4_total,
+            "10 fragments should exceed 4 fragments"
+        );
+        assert!(
+            frag100_total > frag10_total,
+            "100 fragments should exceed 10 fragments"
+        );
+
+        // With 100 fragments, total weight is 10× the single account weight!
+        // This proves quadratic voting encourages fragmentation, not Sybil resistance
+        let ratio = frag100_total / single_weight;
+        assert!(
+            (ratio - 10.0).abs() < 1e-10,
+            "100 fragments give 10x the voting power: {} vs {}",
+            frag100_total,
+            single_weight
+        );
+    }
+
+    /// Test: Sybil resistance via SBT accumulation cost (C-32, wp-v0.2 §12.1)
+    ///
+    /// This test documents that Sybil resistance comes from the cost of
+    /// accumulating SBT scores, not from the voting formula. Each identity
+    /// must independently earn its SBT through demonstrated work.
+    ///
+    /// The SBT-cost model means:
+    /// - Creating 1 account with 10,000 SBT requires 10,000 units of work
+    /// - Creating 100 accounts with 100 SBT each requires 100 × 100 = 10,000 units of work
+    ///
+    /// The cost is the same, but the fragmented strategy requires managing
+    /// 100x more identities and the total voting power is 10x higher.
+    /// However, the identity layer (§8) binds DIDs to real-world credentials,
+    /// making mass identity creation expensive/impossible.
+    #[test]
+    fn sybil_resistance_via_sbt_accumulation_cost() {
+        // Scenario: An attacker wants to maximize voting power
+        // They have resources to accumulate 10,000 total SBT score
+
+        let total_work_capacity = 10000u64;
+
+        // Strategy 1: Single concentrated account
+        // Cost: 10,000 work units → 1 account with 10,000 SBT
+        // Voting power: sqrt(10,000) = 100
+        let strategy1 = AccountSbt::new("did:attacker-1").with_field_score("field", total_work_capacity);
+        let power1 = strategy1.field_vote_weight("field").unwrap();
+        assert!((power1 - 100.0).abs() < 1e-10);
+
+        // Strategy 2: Fragmented across 100 Sybil accounts
+        // Cost: 100 × 100 = 10,000 work units (same total cost!)
+        // But each account needs 100 SBT, requiring 100 independent work streams
+        let sbt_per_sybil = total_work_capacity / 100;
+        let sybils: Vec<_> = (0..100)
+            .map(|i| AccountSbt::new(format!("did:sybil-{}", i)).with_field_score("field", sbt_per_sybil))
+            .collect();
+        let power2: f64 = sybils.iter().filter_map(|a| a.field_vote_weight("field")).sum();
+        // Power: 100 × sqrt(100) = 100 × 10 = 1000
+        assert!((power2 - 1000.0).abs() < 1e-10);
+
+        // The fragmented strategy gives 10x more voting power for the same work!
+        // This is why the SBT-cost model matters:
+        // - In a token system: 1 token = 1 vote, fragmentation doesn't help
+        // - In SBT system: work is identity-bound, can't be parallelized easily
+        let advantage_ratio = power2 / power1;
+        assert!(
+            (advantage_ratio - 10.0).abs() < 1e-10,
+            "Fragmented strategy gives {}x advantage for same work cost",
+            advantage_ratio
+        );
+
+        // The defense: Identity layer (§8) ensures each SBT-earning identity
+        // requires real-world credentials. Creating 100 independent work streams
+        // that each earn 100 SBT is 100x harder than creating 1 stream that earns
+        // 10,000 SBT (due to coordination overhead, not just computational cost).
+    }
 }
