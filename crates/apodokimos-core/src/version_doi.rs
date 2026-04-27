@@ -56,6 +56,9 @@ impl VersionDOI {
     }
 
     /// Validate a DOI string
+    ///
+    /// Requires format: `doi:10.<registrant>/<suffix>` with non-empty registrant
+    /// and suffix components per DOI Handbook (ISO 26324).
     fn validate(s: &str) -> Result<(), ApodokimosError> {
         if !s.starts_with(Self::APODOKIMOS_PREFIX) {
             return Err(ApodokimosError::InvalidVersionDOI(alloc::format!(
@@ -64,6 +67,33 @@ impl VersionDOI {
                 s
             )));
         }
+
+        // After the prefix "doi:10.", there must be a registrant code, a slash, and a suffix
+        let after_prefix = &s[Self::APODOKIMOS_PREFIX.len()..];
+        let slash_pos = after_prefix.find('/').ok_or_else(|| {
+            ApodokimosError::InvalidVersionDOI(alloc::format!(
+                "DOI must contain '/' separator after prefix, got: {}",
+                s
+            ))
+        })?;
+
+        // Validate registrant code is non-empty
+        if slash_pos == 0 {
+            return Err(ApodokimosError::InvalidVersionDOI(alloc::format!(
+                "DOI registrant code must be non-empty, got: {}",
+                s
+            )));
+        }
+
+        // Validate suffix is non-empty
+        let suffix = &after_prefix[slash_pos + 1..];
+        if suffix.is_empty() {
+            return Err(ApodokimosError::InvalidVersionDOI(alloc::format!(
+                "DOI suffix must be non-empty, got: {}",
+                s
+            )));
+        }
+
         Ok(())
     }
 

@@ -7,12 +7,10 @@
 //!
 //! This fixes the wp-v0.1 bug where geometric mean would zero out specialists.
 
+use crate::claim::FieldId;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-/// Field identifier for SBT scores
-pub type FieldId = String;
 
 /// SBT score for a specific field
 pub type SbtScore = u64;
@@ -44,6 +42,11 @@ impl AccountSbt {
     /// Compute the arithmetic mean over non-zero field scores (wp-v0.2 §7.1)
     ///
     /// Returns None if there are no non-zero field scores.
+    ///
+    /// # Overflow Safety
+    /// Uses saturating arithmetic to prevent overflow on extremely large SBT scores.
+    /// In practice, SBT scores grow slowly via demonstrated contribution, so reaching
+    /// `u64::MAX` across fields is not realistic, but the saturation ensures correctness.
     pub fn mean_nonzero(&self) -> Option<f64> {
         let non_zero_scores: Vec<u64> = self
             .field_scores
@@ -56,7 +59,8 @@ impl AccountSbt {
             return None;
         }
 
-        let sum: u64 = non_zero_scores.iter().sum();
+        // Saturating sum to prevent overflow on pathological inputs
+        let sum: u64 = non_zero_scores.iter().fold(0u64, |acc, &x| acc.saturating_add(x));
         let count = non_zero_scores.len() as u64;
 
         Some(sum as f64 / count as f64)

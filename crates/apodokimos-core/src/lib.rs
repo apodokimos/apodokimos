@@ -28,7 +28,7 @@ pub use governance::{
     GovernanceAction, GovernanceActionType, GovernanceConfig, GovernanceSignature,
     GovernanceSigner, GovernanceVerifier, VerificationResult,
 };
-pub use voting::{AccountSbt, total_voting_weight};
+pub use voting::{AccountSbt, SbtScore, total_voting_weight};
 pub use version_doi::VersionDOI;
 pub use weight::{AffectedClaim, ClaimWeight, GraphSnapshot, OFactorSource, WeightFunction};
 

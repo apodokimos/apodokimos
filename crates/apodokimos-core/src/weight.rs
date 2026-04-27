@@ -1,10 +1,12 @@
-//! Weight function W(claim) = R(t) × D × S × O (P-03, C-14 to C-19)
+//! Weight function W(c, t) = R × D̃ × S × (1 + γ·O) × δ per wp-v0.2 §3.1 (C-25 to C-33)
 //!
 //! The weight function computes epistemic contribution scores for claims:
-//! - R(t): Time-decay recency factor
-//! - D: Dependency depth in graph
-//! - S: Survival rate from attestations
-//! - O: Oracle factor for external validation
+//! - R(c, t): Time-decay recency factor with Laplace smoothing (wp-v0.2 §3.2)
+//! - D̃(c): Log-normalized dependency depth factor (wp-v0.2 §3.3)
+//! - S(c): Laplace-smoothed survival rate (wp-v0.2 §3.4)
+//! - O(c): Oracle credibility ∈ [0, 1], entering as (1 + γ·O) bonus (wp-v0.2 §3.5)
+//! - γ: Field-calibrated oracle bonus coefficient
+//! - δ(c): Retraction discount factor ∈ [0, 1] (wp-v0.2 §5.2)
 
 use crate::{ApodokimosError, Attestation, AttestationVerdict, Claim, ClaimId, field::FieldSchema};
 use alloc::collections::BTreeMap;
@@ -315,7 +317,12 @@ impl WeightFunction {
 
             let next_depth = current_depth.saturating_add(1);
 
-            // Cap at depth 10 to prevent extreme attenuation and stack overflow.
+            // Stack-safety bound: cap DFS recursion at depth 10 to prevent stack overflow
+            // on pathologically deep dependency chains. This is DISTINCT from the
+            // per-field cascade_threshold (Θ_field) in FieldSchema, which governs how far
+            // retraction penalties propagate (see C-28). This bound only prevents
+            // unbounded recursion; the log-normalized D̃ formula handles deep chains
+            // gracefully via diminishing returns.
             if next_depth >= 10 {
                 max_depth = max_depth.max(10);
                 continue;
