@@ -152,7 +152,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [x] C-31 — Add cross-field voting tests: arithmetic mean over non-zero (specialist with one field retains weight), geomean fix per wp-v0.2 §7.1
 - [x] C-32 — Add Sybil-resistance test: documents that quadratic voting INCREASES total weight under fragmentation (per wp-v0.2 §12.1 corrected); resistance is via SBT-accumulation cost, not voting formula
 - [x] C-33 — Numerical sanity-check suite: verify §11.4 self-registered whitepaper claim has W > 0 under wp-v0.2 (regression against bug B1)
-- [ ] C-34 — Write `CHANGELOG.md` entry for v0.3.0 — annotate all C-21 through C-33 as wp-v0.2 alignment
+- [x] C-34 — Write `CHANGELOG.md` entry for v0.3.0 — annotate all C-21 through C-33 as wp-v0.2 alignment
 
 ---
 
