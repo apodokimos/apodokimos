@@ -11,19 +11,20 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-/// Computed weight for a claim (P-03)
+/// Computed weight for a claim (P-03, wp-v0.2)
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ClaimWeight {
-    /// Final computed weight (W = R × D × S × O)
+    /// Final computed weight (W = R × D̃ × S × O × δ)
     pub value: f64,
-    /// Time-decay factor [0.0, 1.0]
+    /// Time-decay factor R(c,t) ∈ (0.0, 1.0] per wp-v0.2 §3.2
     pub recency: f64,
-    /// Dependency depth factor [0.0, 1.0]
+    /// Log-normalized dependency depth D̃(c) per wp-v0.2 §3.3
+    /// Range: (0, ∞), typically ~0.4–1.2 for clinical medicine (D_ref=3)
     pub depth: f64,
-    /// Survival rate [0.1, 1.0] — floor of 0.1 applied (uncertainty preservation;
-    /// wp-v0.2 replaces this with Laplace smoothing, see C-24)
+    /// Laplace-smoothed survival rate S(c) ∈ (0, 1) per wp-v0.2 §3.4
+    /// S = (N₊ + 1) / (N₊ + N₋ + 2) with uniform Beta(1,1) prior
     pub survival: f64,
-    /// Oracle factor [0.0, 1.0]
+    /// Oracle factor O(c) ∈ [0.0, 1.0] per wp-v0.2 §3.5
     pub oracle: f64,
 }
 
@@ -280,15 +281,18 @@ impl WeightFunction {
         max_depth
     }
 
-    /// Compute S — survival rate (C-17)
+    /// Compute S — Laplace-smoothed survival rate (C-24, wp-v0.2 §3.4)
     ///
-    /// S = supporting_attestations / total_non_mentioning_attestations
-    /// Returns 1.0 (neutral) if no survival-trackable attestations exist.
+    /// Formula: S(c) = (N₊ + α) / (N₊ + N₋ + α + β)
     ///
-    /// A floor of 0.1 is applied so that a fully-contradicted claim retains a small
-    /// positive weight (epistemic uncertainty preservation). This is a wp-v0.1
-    /// implementation choice; wp-v0.2 replaces it with explicit Laplace smoothing
-    /// (see C-24, wp-v0.2 §3.4). The effective range is therefore [0.1, 1.0].
+    /// With uniform Beta prior (α = β = 1):
+    ///   S(c) = (supporting + 1) / (total + 2)
+    ///
+    /// This ensures:
+    /// - No attestations: S = 0.5 (maximal uncertainty, not neutral)
+    /// - All supporting: S → 1 as n grows
+    /// - All contradicting: S → 0 as n grows
+    /// - Small samples pulled toward 0.5 (uncertainty preservation)
     fn compute_survival(claim_id: &ClaimId, graph: &GraphSnapshot) -> f64 {
         let attestations = graph.get_attestations(claim_id);
 
@@ -308,12 +312,15 @@ impl WeightFunction {
             });
 
         let total = supporting.saturating_add(contradicting);
-        if total == 0 {
-            return 1.0; // Neutral if no survival-trackable attestations
-        }
 
-        let survival_rate = supporting as f64 / total as f64;
-        survival_rate.max(0.1)
+        // Laplace smoothing with α = β = 1 (uniform Beta prior)
+        // S = (supporting + 1) / (total + 2)
+        let alpha = 1.0;
+        let beta = 1.0;
+        let numerator = supporting as f64 + alpha;
+        let denominator = total as f64 + alpha + beta;
+
+        numerator / denominator
     }
 
     /// Propagate retraction penalty through dependency graph (C-19)
@@ -457,20 +464,26 @@ mod proptests {
         }
     }
 
-    /// Property: Survival rate S is bounded in [0.1, 1.0]
+    /// Property: Survival rate S with Laplace smoothing is in (0, 1)
+    ///
+    /// With α=β=1: S = (N₊ + 1) / (N₊ + N₋ + 2)
+    /// - Never 0 (pseudocount prevents zero division)
+    /// - Never 1 (pseudocount prevents certainty)
+    /// - Approaches 0 as N₋ → ∞
+    /// - Approaches 1 as N₊ → ∞
     #[test]
     fn survival_bounded() {
         use crate::claim::{Attestation, AttestationVerdict};
 
         let test_cases = vec![
-            (0, 0),    // No attestations
-            (1, 0),    // Only supporting
-            (0, 1),    // Only contradicting
-            (5, 5),    // Equal
-            (10, 0),   // All supporting
-            (0, 10),   // All contradicting
-            (100, 50), // More supporting
-            (50, 100), // More contradicting
+            (0, 0),    // No attestations: S = 0.5
+            (1, 0),    // Only supporting: S = 2/3
+            (0, 1),    // Only contradicting: S = 1/3
+            (5, 5),    // Equal: S = 6/12 = 0.5
+            (10, 0),   // All supporting: S = 11/12
+            (0, 10),   // All contradicting: S = 1/12
+            (100, 50), // More supporting: S = 101/152
+            (50, 100), // More contradicting: S = 51/152
         ];
 
         for (supporting, contradicting) in test_cases {
@@ -516,12 +529,21 @@ mod proptests {
             );
 
             let survival = WeightFunction::compute_survival(&claim_id, &graph);
+            // With Laplace smoothing, S is strictly in (0, 1)
             assert!(
-                (0.1..=1.0).contains(&survival),
-                "Survival rate should be in [0.1, 1.0]: got {} for {} supporting, {} contradicting",
+                survival > 0.0 && survival < 1.0,
+                "Survival rate with Laplace smoothing should be in (0, 1): got {} for {} supporting, {} contradicting",
                 survival,
                 supporting,
                 contradicting
+            );
+
+            // Verify exact Laplace formula
+            let expected = (supporting as f64 + 1.0) / (supporting as f64 + contradicting as f64 + 2.0);
+            assert!(
+                (survival - expected).abs() < 1e-10,
+                "S should be ({}+1)/({}+{}+2) = {}, got {}",
+                supporting, supporting, contradicting, expected, survival
             );
         }
     }
@@ -720,8 +742,9 @@ mod tests {
             6, // 6 second block time
         );
 
+        // Laplace smoothing: (1 + 1) / (1 + 2) = 2/3
         let survival = WeightFunction::compute_survival(&claim.id, &graph);
-        assert!((survival - 1.0).abs() < f64::EPSILON);
+        assert!((survival - 2.0 / 3.0).abs() < 1e-10, "S should be 2/3, got {}", survival);
     }
 
     #[test]
@@ -753,8 +776,9 @@ mod tests {
             6,
         );
 
+        // Laplace smoothing with no data: (0 + 1) / (0 + 2) = 0.5 (maximal uncertainty)
         let survival = WeightFunction::compute_survival(&claim.id, &graph);
-        assert!((survival - 1.0).abs() < f64::EPSILON); // Neutral default
+        assert!((survival - 0.5).abs() < 1e-10, "S with no attestations should be 0.5, got {}", survival);
     }
 
     #[test]
@@ -771,8 +795,9 @@ mod tests {
             6,
         );
 
+        // Mentions don't contribute to survival scoring, so same as no attestations: S = 0.5
         let survival = WeightFunction::compute_survival(&claim.id, &graph);
-        assert!((survival - 1.0).abs() < f64::EPSILON); // Mentions don't affect survival
+        assert!((survival - 0.5).abs() < 1e-10, "S with only Mentions should be 0.5, got {}", survival);
     }
 
     #[test]
@@ -865,15 +890,16 @@ mod tests {
 
         // R=1.0 (new claim)
         // D̃ = [1 + ln(1)] / [1 + ln(4)] = 0.419 (no deps, D_ref=3 for clinical medicine)
-        // S=1.0 (all support)
+        // S = (1 + 1) / (1 + 2) = 2/3 ≈ 0.667 (Laplace smoothing, 1 supporting attestation)
         // O=1.0 (peer reviewed)
-        // W = 1.0 × 0.419 × 1.0 × 1.0 = 0.419
+        // W = 1.0 × 0.419 × 0.667 × 1.0 ≈ 0.279
         let expected_d = 1.0 / (1.0 + (4.0f64).ln());
-        let expected_w = 1.0 * expected_d * 1.0 * 1.0;
+        let expected_s = 2.0 / 3.0; // Laplace: (1+1)/(1+2)
+        let expected_w = 1.0 * expected_d * expected_s * 1.0;
         assert!((weight.value - expected_w).abs() < 1e-10, "W should be {:.3}, got {:.3}", expected_w, weight.value);
         assert!((weight.recency - 1.0).abs() < f64::EPSILON);
         assert!((weight.depth - expected_d).abs() < 1e-10, "D̃ should be {:.3}, got {:.3}", expected_d, weight.depth);
-        assert!((weight.survival - 1.0).abs() < f64::EPSILON);
+        assert!((weight.survival - expected_s).abs() < 1e-10, "S should be 2/3, got {:.3}", weight.survival);
         assert!((weight.oracle - 1.0).abs() < f64::EPSILON);
     }
 
