@@ -39,6 +39,10 @@ pub enum ApodokimosError {
         computed: crate::ClaimId,
         expected: crate::ClaimId,
     },
+
+    /// Invalid Version DOI format
+    #[error("invalid version doi: {0}")]
+    InvalidVersionDOI(String),
 }
 
 impl ApodokimosError {
@@ -50,6 +54,7 @@ impl ApodokimosError {
                 | Self::InvalidFieldId(_)
                 | Self::AttestationValidation(_)
                 | Self::DependencyCycle { .. }
+                | Self::InvalidVersionDOI(_)
         )
     }
 

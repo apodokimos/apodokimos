@@ -626,6 +626,7 @@ mod tests {
             depends_on,
             arweave_tx: "test-tx".into(),
             registered,
+            spec_version_doi: crate::VersionDOI::wp_v0_2(),
         }
     }
 

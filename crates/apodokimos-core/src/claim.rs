@@ -1,6 +1,6 @@
 //! Claim and attestation types (P-01, P-02)
 
-use crate::{ApodokimosError, canonical_serialize, compute_claim_hash};
+use crate::{ApodokimosError, VersionDOI, canonical_serialize, compute_claim_hash};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -154,7 +154,7 @@ pub type FieldId = String;
 /// Block number in the Substrate chain
 pub type BlockNumber = u64;
 
-/// Claim — minimal unit of falsifiable scientific assertion (P-01)
+/// Claim — minimal unit of falsifiable scientific assertion (P-01, P-08)
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Claim {
     /// Blake3 hash of canonical JSON claim content
@@ -173,6 +173,8 @@ pub struct Claim {
     pub arweave_tx: TxId,
     /// Block number when registered
     pub registered: BlockNumber,
+    /// Protocol specification Version DOI (wp-v0.2 §2.2)
+    pub spec_version_doi: VersionDOI,
 }
 
 /// Content of a claim (CC0 schema)
@@ -191,7 +193,7 @@ impl ClaimContent {
 }
 
 impl Claim {
-    /// Create a new claim with computed ID
+    /// Create a new claim with computed ID (wp-v0.2 default Version DOI)
     pub fn new(
         claim_type: ClaimType,
         field_id: impl Into<String>,
@@ -200,6 +202,46 @@ impl Claim {
         depends_on: Vec<ClaimId>,
         arweave_tx: impl Into<String>,
         registered: BlockNumber,
+    ) -> Self {
+        Self::with_version(
+            claim_type,
+            field_id,
+            content,
+            submitter,
+            depends_on,
+            arweave_tx,
+            registered,
+            VersionDOI::wp_v0_2(),
+        )
+    }
+
+    /// Create a new claim with explicit Version DOI (P-08)
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::{Claim, ClaimType, VersionDOI};
+    ///
+    /// let claim = Claim::with_version(
+    ///     ClaimType::PrimaryClaim,
+    ///     "clinical-medicine",
+    ///     r#"{"population":"adults"}"#,
+    ///     "did:apodokimos:submitter1",
+    ///     vec![],
+    ///     "tx123",
+    ///     1000,
+    ///     VersionDOI::new("doi:10.5281/apodokimos.wp-v0.2").unwrap(),
+    /// );
+    /// assert!(claim.spec_version_doi.is_v0_2_or_later());
+    /// ```
+    pub fn with_version(
+        claim_type: ClaimType,
+        field_id: impl Into<String>,
+        content: impl Into<String>,
+        submitter: impl Into<String>,
+        depends_on: Vec<ClaimId>,
+        arweave_tx: impl Into<String>,
+        registered: BlockNumber,
+        spec_version_doi: VersionDOI,
     ) -> Self {
         let canonical_json = content.into();
         let content = ClaimContent { canonical_json };
@@ -216,6 +258,7 @@ impl Claim {
             depends_on,
             arweave_tx: arweave_tx.into(),
             registered,
+            spec_version_doi,
         }
     }
 
