@@ -1011,7 +1011,7 @@ mod proptests {
 mod tests {
     use super::*;
     use crate::field::ClinicalMedicine;
-    use crate::{Claim, ClaimType};
+    use crate::{Claim, ClaimType, VersionDOI};
 
     pub fn create_test_claim(id: u8, depends_on: Vec<ClaimId>, registered: u64) -> Claim {
         Claim {
@@ -1404,5 +1404,157 @@ mod tests {
         // Third retraction: δ = 0.25 × 0.5 = 0.125
         let claim_after_3 = claim_after_2.with_retraction_discount(0.5);
         assert!((claim_after_3.retraction_discount - 0.125).abs() < 1e-10);
+    }
+
+    /// Numerical sanity-check: Self-registered whitepaper claim has W > 0 (C-33, wp-v0.2 §11.4)
+    ///
+    /// This test verifies Bug B1 is fixed: the wp-v0.2 formula ensures that even
+    /// a newly-registered claim (no attestations, no dependents, basic-science type)
+    /// has strictly positive weight.
+    ///
+    /// The whitepaper-as-first-claim (§11.4) is:
+    /// - New: registered at current block
+    /// - No attestations: S = 0.5 (Laplace smoothing baseline)
+    /// - Terminal: no dependents, D̃ = 1.0 (reference depth)
+    /// - Basic science document: O = None (O=1.0, oracle_bonus = 1+γ)
+    /// - No retractions: δ = 1.0
+    ///
+    /// Expected: W = R × D̃ × S × (1+γ·O) × δ
+    ///         = 1.0 × 1.0 × 0.5 × 1.5 × 1.0 = 0.75 > 0
+    ///
+    /// Under wp-v0.1, this would have been W = 0 (due to multiplicative zero-collapse).
+    #[test]
+    fn whitepaper_claim_has_nonzero_weight_bug_b1_regression() {
+        let field = ClinicalMedicine::new();
+
+        // Simulate the whitepaper as a self-registered claim
+        // - Fresh registration (block 100, computed at block 100)
+        // - No attestations
+        // - No dependents
+        // - No oracle linkage (basic science document)
+        let whitepaper_claim = create_test_claim_with_version(
+            1,
+            vec![], // No dependencies
+            100,    // Registered at block 100
+            VersionDOI::wp_v0_2(), // Self-references wp-v0.2
+        );
+
+        let graph = GraphSnapshot::new(
+            BTreeMap::from([(whitepaper_claim.id, whitepaper_claim.clone())]),
+            BTreeMap::new(), // No attestations
+            100,             // Current block = registration block
+            6,
+        );
+
+        // Compute weight with no oracle linkage (basic science)
+        let oracle = OFactorSource::None;
+        let weight = WeightFunction::compute(&whitepaper_claim.id, &graph, &field, &oracle)
+            .expect("Weight computation should succeed");
+
+        // CRITICAL: W must be > 0 (regression test for Bug B1)
+        assert!(
+            weight.value > 0.0,
+            "BUG B1 REGRESSION: Self-registered whitepaper claim has W = 0. Expected W > 0, got {}. Under wp-v0.1, this would have been 0.",
+            weight.value
+        );
+
+        // Verify all factors have strictly positive baselines
+        assert!(
+            weight.recency > 0.0,
+            "R should be > 0 for fresh claim: got {}",
+            weight.recency
+        );
+        assert!(
+            weight.recency <= 1.0,
+            "R should be <= 1.0: got {}",
+            weight.recency
+        );
+
+        assert!(
+            weight.depth > 0.0,
+            "D̃ should be > 0 for terminal claim: got {}",
+            weight.depth
+        );
+
+        assert!(
+            weight.survival > 0.0,
+            "S should be > 0 (Laplace smoothing): got {}",
+            weight.survival
+        );
+        assert!(
+            weight.survival < 1.0,
+            "S should be < 1.0 (no certainty with no data): got {}",
+            weight.survival
+        );
+
+        assert!(
+            weight.oracle >= 1.0,
+            "Oracle bonus should be >= 1.0: got {}",
+            weight.oracle
+        );
+
+        // Verify the exact computation
+        // R = 2^(0/t_½) = 1.0 (same block)
+        // D̃ = log_norm(0, 3) ≈ 0.721 (terminal claim, reference depth 3)
+        // S = (0+1)/(0+2) = 0.5 (Laplace smoothing)
+        // O_bonus = 1 + 0.5×1.0 = 1.5 (None has O=1.0)
+        // δ = 1.0
+        let expected_r = 1.0f64; // Same block
+        let expected_s = 0.5f64; // Laplace with no attestations
+        let expected_o = 1.0 + field.oracle_gamma() * 1.0; // 1.5
+
+        assert!(
+            (weight.recency - expected_r).abs() < 1e-10,
+            "R should be {} for fresh claim, got {}",
+            expected_r,
+            weight.recency
+        );
+        assert!(
+            (weight.survival - expected_s).abs() < 1e-10,
+            "S should be {} with no attestations, got {}",
+            expected_s,
+            weight.survival
+        );
+        assert!(
+            (weight.oracle - expected_o).abs() < 1e-10,
+            "Oracle bonus should be {} for O=None, got {}",
+            expected_o,
+            weight.oracle
+        );
+
+        // The actual weight should be approximately:
+        // W ≈ 1.0 × 0.721 × 0.5 × 1.5 × 1.0 ≈ 0.54
+        // The important thing is W > 0, not the exact value
+        println!(
+            "Whitepaper claim weight: W = {} (R={}, D̃={}, S={}, O={}, δ=1.0)",
+            weight.value,
+            weight.recency,
+            weight.depth,
+            weight.survival,
+            weight.oracle
+        );
+    }
+
+    /// Helper to create a test claim with explicit VersionDOI
+    fn create_test_claim_with_version(
+        id: u8,
+        depends_on: Vec<ClaimId>,
+        registered: u64,
+        version: VersionDOI,
+    ) -> Claim {
+        Claim {
+            id: ClaimId::from_bytes([id; 32]),
+            claim_type: ClaimType::PrimaryClaim,
+            field_id: "clinical-medicine".into(),
+            content: crate::claim::ClaimContent {
+                canonical_json: format!("{{\"whitepaper\":{},\"version\":\"{}\"}}", id, version),
+            },
+            submitter: "did:apodokimos:genesis".into(),
+            depends_on,
+            arweave_tx: "ar://whitepaper-tx".into(),
+            registered,
+            spec_version_doi: version,
+            retraction_discount: 1.0,
+        }
     }
 }
