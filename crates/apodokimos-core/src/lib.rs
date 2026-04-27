@@ -18,6 +18,7 @@ mod error;
 mod field;
 mod governance;
 mod version_doi;
+mod voting;
 mod weight;
 
 pub use claim::{Attestation, AttestationVerdict, Claim, ClaimId, ClaimType};
@@ -27,6 +28,7 @@ pub use governance::{
     GovernanceAction, GovernanceActionType, GovernanceConfig, GovernanceSignature,
     GovernanceSigner, GovernanceVerifier, VerificationResult,
 };
+pub use voting::{AccountSbt, total_voting_weight};
 pub use version_doi::VersionDOI;
 pub use weight::{AffectedClaim, ClaimWeight, GraphSnapshot, OFactorSource, WeightFunction};
 
