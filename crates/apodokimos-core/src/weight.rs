@@ -869,11 +869,11 @@ mod proptests {
     /// A claim with no attestations and no dependencies should have W > 0.
     /// W = R × D̃ × S × (1 + γ·O) × δ
     /// - R > 0 (fresh claim)
-    /// - D̃ = 1.0 (no dependencies)
+    /// - D̃ > 0 (log-normalized depth, positive for all depths)
     /// - S = 0.5 (Laplace smoothing with no attestations)
     /// - (1 + γ·O) >= 1.0
     /// - δ = 1.0
-    /// So W >= R × 0.5 > 0
+    /// So W > 0 for all valid claims
     #[test]
     fn unattested_terminal_claim_nonzero_weight() {
         let field = ClinicalMedicine::new();
