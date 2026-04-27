@@ -75,6 +75,46 @@ This release implements the corrected formulas from Apodokimos whitepaper v0.2, 
 
 [0.3.0]: https://github.com/apodokimos/apodokimos/releases/tag/apodokimos-core-v0.3.0
 
+## [0.2.0] - 2025-04-15
+
+### W computation — wp-v0.1 formulas (C-14 to C-20)
+
+Initial implementation of the weight function using the wp-v0.1 formulas. Note: all
+factors in this release were superseded in v0.3.0 by the wp-v0.2 corrections.
+
+### Added
+
+- **Weight computation** (C-14):
+  - `WeightFunction::compute(claim_id, graph_snapshot) -> ClaimWeight`
+  - `GraphSnapshot` — point-in-time view of claims and attestations
+  - `ClaimWeight` — computed weight with factor breakdown
+
+- **Recency factor R(t)** (C-15):
+  - Field-calibrated half-life time decay
+  - `FieldSchema` trait extended with `decay_half_life()` and `compute_decay()`
+
+- **Depth factor D(c)** (C-16):
+  - Dependency depth traversal on DAG with cycle detection
+  - Linear depth normalization against field reference depth
+
+- **Survival rate S(c)** (C-17):
+  - Raw ratio of supporting attestations over total scored attestations
+  - `AttestationVerdict::contributes_to_survival()` classification
+
+- **Oracle factor O(c)** (C-18):
+  - Typed `OFactorSource` enum (ClinicalTrial, SystematicReview, Preprint, PeerReviewed, Dataset, Software)
+  - Credibility scoring per source type
+  - Discontinuous domain `{0} ∪ [0.1, 1.0]` *(redesigned in v0.3.0)*
+
+- **Retraction propagation** (C-19):
+  - `propagate_retraction(claim_id, graph) -> Vec<AffectedClaim>`
+  - BFS cascade over dependent claims with depth-weighted penalty
+
+- **Property-based tests** (C-20):
+  - `proptest` suite for weight function monotonicity under supporting attestations
+
+[0.2.0]: https://github.com/apodokimos/apodokimos/releases/tag/apodokimos-core-v0.2.0
+
 ## [0.1.0] - 2025-04-15
 
 ### Added
