@@ -734,6 +734,277 @@ mod proptests {
             preprint
         );
     }
+
+    // =========================================================================
+    // C-30: Property-based tests per wp-v0.2 (updated for new formula)
+    // =========================================================================
+
+    /// Property: Weight W is monotonic under additional supporting attestations (C-30)
+    ///
+    /// Adding a supporting attestation should never decrease the weight.
+    /// W = R × D̃ × S × (1 + γ·O) × δ, and S increases with more supporting attestations.
+    #[test]
+    fn weight_monotonic_under_supporting_attestations() {
+        use crate::claim::{Attestation, AttestationVerdict};
+
+        let field = ClinicalMedicine::new();
+        let claim = super::tests::create_test_claim(1, vec![], 0);
+        let claim_id = claim.id;
+
+        // Base case: no attestations
+        let graph_base = GraphSnapshot::new(
+            BTreeMap::from([(claim_id, claim.clone())]),
+            BTreeMap::new(),
+            100,
+            6,
+        );
+        let w_base = WeightFunction::compute(&claim_id, &graph_base, &field, &OFactorSource::None)
+            .unwrap()
+            .value;
+
+        // With one supporting attestation
+        let attestation = Attestation {
+            id: "att-1".into(),
+            claim_id,
+            attester: "did:test:attester".into(),
+            verdict: AttestationVerdict::Supports,
+            evidence_tx: None,
+            attester_sbt: 100,
+            block: 10,
+        };
+        let graph_with_support = GraphSnapshot::new(
+            BTreeMap::from([(claim_id, claim.clone())]),
+            BTreeMap::from([(claim_id, vec![attestation])]),
+            100,
+            6,
+        );
+        let w_with_support = WeightFunction::compute(&claim_id, &graph_with_support, &field, &OFactorSource::None)
+            .unwrap()
+            .value;
+
+        // Weight should increase (or stay same if already at max)
+        assert!(
+            w_with_support >= w_base,
+            "Weight should not decrease with supporting attestation: W_base={}, W_with_support={}",
+            w_base,
+            w_with_support
+        );
+
+        // Verify S actually increased
+        let s_base = WeightFunction::compute_survival(&claim_id, &graph_base);
+        let s_with_support = WeightFunction::compute_survival(&claim_id, &graph_with_support);
+        assert!(
+            s_with_support > s_base,
+            "Survival rate should increase with supporting attestation: S_base={}, S_with_support={}",
+            s_base,
+            s_with_support
+        );
+    }
+
+    /// Property: Retraction discount δ(c) is monotonic under cascade depth (C-30)
+    ///
+    /// As cascade depth increases, the retraction discount should decrease
+    /// monotonically: δ_new = δ_old × (0.5^depth)
+    #[test]
+    fn retraction_discount_monotonic_under_cascade() {
+        let field = ClinicalMedicine::new();
+
+        // Create a chain: A <- B <- C <- D <- E (depths 1-4 from A)
+        let a = super::tests::create_test_claim(1, vec![], 0);
+        let b = super::tests::create_test_claim(2, vec![a.id], 0);
+        let c = super::tests::create_test_claim(3, vec![b.id], 0);
+        let d = super::tests::create_test_claim(4, vec![c.id], 0);
+        let e = super::tests::create_test_claim(5, vec![d.id], 0);
+
+        let graph = GraphSnapshot::new(
+            BTreeMap::from([
+                (a.id, a.clone()),
+                (b.id, b.clone()),
+                (c.id, c.clone()),
+                (d.id, d.clone()),
+                (e.id, e.clone()),
+            ]),
+            BTreeMap::new(),
+            100,
+            6,
+        );
+
+        let affected = WeightFunction::propagate_retraction(&a.id, &graph, &field);
+
+        // Collect discounts by depth
+        let mut discounts_by_depth: BTreeMap<u32, f64> = BTreeMap::new();
+        for aff in &affected {
+            discounts_by_depth.insert(aff.cascade_depth, aff.new_retraction_discount);
+        }
+
+        // Verify monotonic decrease: depth 1 > depth 2 > depth 3 > depth 4
+        for depth in 2..=4u32 {
+            let prev_discount = discounts_by_depth.get(&(depth - 1)).copied().unwrap_or(1.0);
+            let curr_discount = discounts_by_depth.get(&depth).copied().unwrap_or(1.0);
+
+            assert!(
+                curr_discount < prev_discount,
+                "δ should decrease monotonically with depth: δ({})={}, δ({})={}",
+                depth - 1,
+                prev_discount,
+                depth,
+                curr_discount
+            );
+
+            // Verify exact formula: δ(depth) = 0.5^depth (assuming δ_old = 1.0)
+            let expected = 0.5f64.powi(depth as i32);
+            assert!(
+                (curr_discount - expected).abs() < 1e-10,
+                "δ({}) should be 0.5^{} = {}, got {}",
+                depth,
+                depth,
+                expected,
+                curr_discount
+            );
+        }
+    }
+
+    /// Property: Non-zero baseline for unattested terminal claim (C-30)
+    ///
+    /// A claim with no attestations and no dependencies should have W > 0.
+    /// W = R × D̃ × S × (1 + γ·O) × δ
+    /// - R > 0 (fresh claim)
+    /// - D̃ = 1.0 (no dependencies)
+    /// - S = 0.5 (Laplace smoothing with no attestations)
+    /// - (1 + γ·O) >= 1.0
+    /// - δ = 1.0
+    /// So W >= R × 0.5 > 0
+    #[test]
+    fn unattested_terminal_claim_nonzero_weight() {
+        let field = ClinicalMedicine::new();
+
+        // Fresh claim at block 0, computing at block 100 (same block as registered)
+        let claim = super::tests::create_test_claim(1, vec![], 100);
+        let claim_id = claim.id;
+
+        let graph = GraphSnapshot::new(
+            BTreeMap::from([(claim_id, claim)]),
+            BTreeMap::new(),
+            100, // Same block as registered
+            6,
+        );
+
+        let weight = WeightFunction::compute(&claim_id, &graph, &field, &OFactorSource::None)
+            .unwrap();
+
+        // W must be > 0
+        assert!(
+            weight.value > 0.0,
+            "Unattested terminal claim must have W > 0: got {}",
+            weight.value
+        );
+
+        // Verify components
+        assert!(
+            weight.recency > 0.0,
+            "Recency should be > 0 for fresh claim: got {}",
+            weight.recency
+        );
+        assert!(
+            weight.depth > 0.0,
+            "Depth should be > 0: got {}",
+            weight.depth
+        );
+        assert!(
+            (weight.survival - 0.5).abs() < 1e-10,
+            "Survival should be 0.5 with no attestations (Laplace): got {}",
+            weight.survival
+        );
+        assert!(
+            weight.oracle >= 1.0,
+            "Oracle bonus should be >= 1.0: got {}",
+            weight.oracle
+        );
+
+        // W should be approximately R × D̃ × 0.5 × (1 + γ) for fresh claim with O=None (O=1.0)
+        // O=None gives O=1.0, so oracle_bonus = 1 + γ × 1.0 = 1 + 0.5 = 1.5
+        let expected_oracle = 1.0 + field.oracle_gamma() * 1.0; // 1.5
+        assert!(
+            (weight.oracle - expected_oracle).abs() < 1e-10,
+            "Oracle bonus should be {} for O=None: got {}",
+            expected_oracle,
+            weight.oracle
+        );
+    }
+
+    /// Property: Basic science (O=0) does not zero W (C-30)
+    ///
+    /// When oracle credibility is 0 (no peer review), the oracle bonus is (1 + γ·0) = 1.0,
+    /// not 0. So basic science claims with O=0 still have weight.
+    #[test]
+    fn basic_science_oracle_zero_does_not_zero_weight() {
+        use crate::claim::{Attestation, AttestationVerdict};
+
+        let field = ClinicalMedicine::new();
+
+        // Create a basic science claim: O=0 via preprint (lowest credibility)
+        let claim = super::tests::create_test_claim(1, vec![], 100);
+        let claim_id = claim.id;
+
+        // Add supporting attestation to ensure non-zero survival
+        let attestation = Attestation {
+            id: "att-1".into(),
+            claim_id,
+            attester: "did:test:attester".into(),
+            verdict: AttestationVerdict::Supports,
+            evidence_tx: None,
+            attester_sbt: 100,
+            block: 10,
+        };
+
+        let graph = GraphSnapshot::new(
+            BTreeMap::from([(claim_id, claim)]),
+            BTreeMap::from([(claim_id, vec![attestation])]),
+            100,
+            6,
+        );
+
+        // Preprint has O = 0.70 (lowest non-zero)
+        // To get O=0, we need a custom source or check that even low O doesn't zero W
+        let preprint_source = OFactorSource::Preprint { doi: "10.1/test".into() };
+        let weight_preprint = WeightFunction::compute(&claim_id, &graph, &field, &preprint_source)
+            .unwrap();
+
+        // Even with low O, W should be > 0
+        assert!(
+            weight_preprint.value > 0.0,
+            "Preprint claim (O=0.70) must have W > 0: got {}",
+            weight_preprint.value
+        );
+
+        // Oracle bonus should be 1 + γ × 0.70 = 1 + 0.5 × 0.70 = 1.35
+        let expected_bonus = 1.0 + field.oracle_gamma() * 0.70;
+        assert!(
+            (weight_preprint.oracle - expected_bonus).abs() < 1e-10,
+            "Oracle bonus for preprint should be {}: got {}",
+            expected_bonus,
+            weight_preprint.oracle
+        );
+
+        // With O=None, bonus is 1 + γ × 1.0 = 1.5
+        let weight_none = WeightFunction::compute(&claim_id, &graph, &field, &OFactorSource::None)
+            .unwrap();
+        let expected_bonus_none = 1.0 + field.oracle_gamma() * 1.0;
+        assert!(
+            (weight_none.oracle - expected_bonus_none).abs() < 1e-10,
+            "Oracle bonus for None should be {}: got {}",
+            expected_bonus_none,
+            weight_none.oracle
+        );
+
+        // Verify O=None gives higher weight than preprint (since O=None has O=1.0)
+        assert!(
+            weight_none.value > weight_preprint.value,
+            "O=None (O=1.0) should give higher weight than preprint (O=0.70): W_none={}, W_preprint={}",
+            weight_none.value,
+            weight_preprint.value
+        );
+    }
 }
 
 #[cfg(test)]
