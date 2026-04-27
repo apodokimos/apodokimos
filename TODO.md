@@ -147,7 +147,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [x] C-26 — Reimplement O factor as `O ∈ [0, 1]` (drop the `{0} ∪ [0.1, 1.0]` discontinuity); enter as `(1 + γ·O)` bonus rather than direct multiplier per wp-v0.2 §3.5
 - [x] C-27 — Add `δ(c)` retraction discount field; implement `propagate_retraction` operating on δ with `W_pre` snapshot per wp-v0.2 §5.2
 - [x] C-28 — Add `Θ_field` per-field cascade threshold to `FieldSchema` trait
-- [ ] C-29 — Implement multi-signature governance verification (k-of-n signed action records) per wp-v0.2 §7.5
+- [x] C-29 — Implement multi-signature governance verification (k-of-n signed action records) per wp-v0.2 §7.5
 - [ ] C-30 — Update property-based tests: monotonicity of W under additional `Replicates`, monotonicity of δ under retraction cascade, non-zero baseline for unattested terminal claim, basic-science (O=0) does not zero W
 - [ ] C-31 — Add cross-field voting tests: arithmetic mean over non-zero (specialist with one field retains weight), geomean fix per wp-v0.2 §7.1
 - [ ] C-32 — Add Sybil-resistance test: documents that quadratic voting INCREASES total weight under fragmentation (per wp-v0.2 §12.1 corrected); resistance is via SBT-accumulation cost, not voting formula
