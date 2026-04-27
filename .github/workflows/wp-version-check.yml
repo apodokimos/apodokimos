@@ -16,8 +16,8 @@ jobs:
         id: readme_doi
         run: |
           set -euo pipefail
-          # Extract the DOI from the "Current" row in the README spec table
-          DOI=$(grep -A2 'wp-v0.2.*Current' README.md | grep -oP '\[\K10\.5281/zenodo\.\d+(?=\])')
+          # Extract the DOI from the wp-v0.2 Current row only (single-line match)
+          DOI=$(grep '| wp-v0\.2.*| Current' README.md | grep -oP '\[\K10\.5281/zenodo\.\d+(?=\])')
           if [ -z "$DOI" ]; then
             echo "ERROR: Could not extract wp-v0.2 Version DOI from README.md"
             exit 1
