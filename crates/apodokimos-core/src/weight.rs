@@ -378,13 +378,15 @@ impl WeightFunction {
             }
         }
 
+        let theta = field_schema.cascade_threshold();
         let mut head = 0;
         while head < queue.len() {
             let (claim_id, cascade_depth) = queue[head];
             head += 1;
 
-            // Hard cap: prevent excessive cascade depth
-            if cascade_depth > 5 {
+            // Apply per-field cascade threshold Θ_field (C-28, wp-v0.2 §5.2)
+            // Claims deeper than Θ_field are not affected by retraction
+            if cascade_depth > theta {
                 continue;
             }
 

@@ -83,6 +83,17 @@ pub trait FieldSchema: Send + Sync {
     /// - 1.0 (high bonus): physics, mathematics (peer review very reliable)
     /// - 0.2 (low bonus): emerging fields, preprint-heavy domains
     fn oracle_gamma(&self) -> f64;
+
+    /// Returns the cascade threshold Θ_field per wp-v0.2 §5.2 (C-28)
+    ///
+    /// This limits how far retraction penalties propagate through the dependency graph.
+    /// Claims deeper than Θ_field from a retraction are not affected.
+    ///
+    /// Typical values:
+    /// - 3 (conservative): only direct dependents and their immediate children affected
+    /// - 5 (moderate): default for most fields
+    /// - 7 (permissive): deep theoretical chains (e.g., mathematics)
+    fn cascade_threshold(&self) -> u32;
 }
 
 /// Clinical medicine field schema with 5-year half-life
@@ -113,6 +124,12 @@ impl FieldSchema for ClinicalMedicine {
     fn oracle_gamma(&self) -> f64 {
         // Moderate bonus for clinical medicine (peer review is important but not infallible)
         0.5
+    }
+
+    fn cascade_threshold(&self) -> u32 {
+        // Conservative threshold for clinical medicine: direct deps + 2 levels
+        // Evidence-based medicine chains rarely go deeper than 3-4 levels
+        5
     }
 }
 
@@ -159,6 +176,14 @@ mod tests {
         // γ = 0.5: moderate bonus for clinical medicine
         // Oracle bonus = (1 + γ·O) ranges from 1.0 to 1.5
         assert!((field.oracle_gamma() - 0.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn clinical_medicine_cascade_threshold() {
+        let field = ClinicalMedicine::new();
+        // Θ_field = 5: moderate threshold for clinical medicine
+        // Retractions affect claims up to 5 levels deep
+        assert_eq!(field.cascade_threshold(), 5);
     }
 
     #[test]
