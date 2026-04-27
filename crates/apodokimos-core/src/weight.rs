@@ -149,7 +149,7 @@ impl GraphSnapshot {
                     "invalid retraction discount: {} (must be finite and in [0, 1])",
                     target
                 );
-                
+
                 // Compute the factor needed: target = current × factor
                 // factor = target / current
                 let current = claim.retraction_discount;
@@ -159,7 +159,7 @@ impl GraphSnapshot {
                 } else {
                     claim.retraction_discount = target;
                 }
-                
+
                 // Clamp to handle floating point drift
                 claim.retraction_discount = claim.retraction_discount.clamp(0.0, 1.0);
             }
@@ -232,7 +232,13 @@ impl WeightFunction {
         let value = recency * depth * survival * oracle_bonus * retraction_delta;
 
         // Store the bonus-adjusted oracle factor in ClaimWeight
-        Ok(ClaimWeight::new(value, recency, depth, survival, oracle_bonus))
+        Ok(ClaimWeight::new(
+            value,
+            recency,
+            depth,
+            survival,
+            oracle_bonus,
+        ))
     }
 
     /// Compute R(c, t) — time-decay recency factor (C-22, wp-v0.2 §3.2)
@@ -272,11 +278,7 @@ impl WeightFunction {
     /// - D = 0: D̃ = 1.0 / [1 + ln(1+D_ref)] (< 1.0 for D_ref > 0; claims shallower than D_ref)
     /// - D = D_ref: D̃ = 1.0 (reference normalization)
     /// - D > D_ref: D̃ > 1.0 (logarithmic boost for deep chains)
-    fn compute_depth(
-        claim: &Claim,
-        graph: &GraphSnapshot,
-        field_schema: &dyn FieldSchema,
-    ) -> f64 {
+    fn compute_depth(claim: &Claim, graph: &GraphSnapshot, field_schema: &dyn FieldSchema) -> f64 {
         let mut in_stack = BTreeMap::new();
         in_stack.insert(claim.id, ());
         let max_depth = Self::find_max_depth(&claim.depends_on, graph, 0, &mut in_stack);
@@ -411,11 +413,11 @@ impl WeightFunction {
 
         // Seed: direct dependents of the retracted claim at depth 1
         for claim in graph.claims.values() {
-            if claim.depends_directly_on(retracted_claim_id) {
-                if !visited.contains_key(&claim.id) {
-                    visited.insert(claim.id, 1);
-                    queue.push((claim.id, 1));
-                }
+            if claim.depends_directly_on(retracted_claim_id)
+                && let alloc::collections::btree_map::Entry::Vacant(e) = visited.entry(claim.id)
+            {
+                e.insert(1);
+                queue.push((claim.id, 1));
             }
         }
 
@@ -446,12 +448,12 @@ impl WeightFunction {
             // δ_new = δ_old × (0.5^depth)
             let depth_factor = 0.5f64.powi(cascade_depth as i32);
             let old_delta = claim.retraction_discount;
-            
+
             // Validate old_delta is finite and in valid range [0, 1]
-            if !old_delta.is_finite() || old_delta < 0.0 || old_delta > 1.0 {
+            if !old_delta.is_finite() || !(0.0..=1.0).contains(&old_delta) {
                 continue;
             }
-            
+
             let new_delta = old_delta * depth_factor;
 
             // W_post: weight with new δ
@@ -477,8 +479,7 @@ impl WeightFunction {
 
             let next_depth = cascade_depth.saturating_add(1);
             for candidate in graph.claims.values() {
-                if candidate.depends_directly_on(&claim_id)
-                    && !visited.contains_key(&candidate.id)
+                if candidate.depends_directly_on(&claim_id) && !visited.contains_key(&candidate.id)
                 {
                     visited.insert(candidate.id, next_depth);
                     queue.push((candidate.id, next_depth));
@@ -628,11 +629,16 @@ mod proptests {
             );
 
             // Verify exact Laplace formula
-            let expected = (supporting as f64 + 1.0) / (supporting as f64 + contradicting as f64 + 2.0);
+            let expected =
+                (supporting as f64 + 1.0) / (supporting as f64 + contradicting as f64 + 2.0);
             assert!(
                 (survival - expected).abs() < 1e-10,
                 "S should be ({}+1)/({}+{}+2) = {}, got {}",
-                supporting, supporting, contradicting, expected, survival
+                supporting,
+                supporting,
+                contradicting,
+                expected,
+                survival
             );
         }
     }
@@ -785,9 +791,10 @@ mod proptests {
             100,
             6,
         );
-        let w_with_support = WeightFunction::compute(&claim_id, &graph_with_support, &field, &OFactorSource::None)
-            .unwrap()
-            .value;
+        let w_with_support =
+            WeightFunction::compute(&claim_id, &graph_with_support, &field, &OFactorSource::None)
+                .unwrap()
+                .value;
 
         // Weight should increase (or stay same if already at max)
         assert!(
@@ -880,6 +887,7 @@ mod proptests {
     /// - S = 0.5 (Laplace smoothing with no attestations)
     /// - (1 + γ·O) >= 1.0
     /// - δ = 1.0
+    ///
     /// So W > 0 for all valid claims
     #[test]
     fn unattested_terminal_claim_nonzero_weight() {
@@ -896,8 +904,8 @@ mod proptests {
             6,
         );
 
-        let weight = WeightFunction::compute(&claim_id, &graph, &field, &OFactorSource::None)
-            .unwrap();
+        let weight =
+            WeightFunction::compute(&claim_id, &graph, &field, &OFactorSource::None).unwrap();
 
         // W must be > 0
         assert!(
@@ -973,9 +981,11 @@ mod proptests {
 
         // Preprint has O = 0.70 (lowest non-zero)
         // To get O=0, we need a custom source or check that even low O doesn't zero W
-        let preprint_source = OFactorSource::Preprint { doi: "10.1/test".into() };
-        let weight_preprint = WeightFunction::compute(&claim_id, &graph, &field, &preprint_source)
-            .unwrap();
+        let preprint_source = OFactorSource::Preprint {
+            doi: "10.1/test".into(),
+        };
+        let weight_preprint =
+            WeightFunction::compute(&claim_id, &graph, &field, &preprint_source).unwrap();
 
         // Even with low O, W should be > 0
         assert!(
@@ -994,8 +1004,8 @@ mod proptests {
         );
 
         // With O=None, bonus is 1 + γ × 1.0 = 1.5
-        let weight_none = WeightFunction::compute(&claim_id, &graph, &field, &OFactorSource::None)
-            .unwrap();
+        let weight_none =
+            WeightFunction::compute(&claim_id, &graph, &field, &OFactorSource::None).unwrap();
         let expected_bonus_none = 1.0 + field.oracle_gamma() * 1.0;
         assert!(
             (weight_none.oracle - expected_bonus_none).abs() < 1e-10,
@@ -1105,7 +1115,11 @@ mod tests {
 
         // Laplace smoothing: (1 + 1) / (1 + 2) = 2/3
         let survival = WeightFunction::compute_survival(&claim.id, &graph);
-        assert!((survival - 2.0 / 3.0).abs() < 1e-10, "S should be 2/3, got {}", survival);
+        assert!(
+            (survival - 2.0 / 3.0).abs() < 1e-10,
+            "S should be 2/3, got {}",
+            survival
+        );
     }
 
     #[test]
@@ -1139,7 +1153,11 @@ mod tests {
 
         // Laplace smoothing with no data: (0 + 1) / (0 + 2) = 0.5 (maximal uncertainty)
         let survival = WeightFunction::compute_survival(&claim.id, &graph);
-        assert!((survival - 0.5).abs() < 1e-10, "S with no attestations should be 0.5, got {}", survival);
+        assert!(
+            (survival - 0.5).abs() < 1e-10,
+            "S with no attestations should be 0.5, got {}",
+            survival
+        );
     }
 
     #[test]
@@ -1158,7 +1176,11 @@ mod tests {
 
         // Mentions don't contribute to survival scoring, so same as no attestations: S = 0.5
         let survival = WeightFunction::compute_survival(&claim.id, &graph);
-        assert!((survival - 0.5).abs() < 1e-10, "S with only Mentions should be 0.5, got {}", survival);
+        assert!(
+            (survival - 0.5).abs() < 1e-10,
+            "S with only Mentions should be 0.5, got {}",
+            survival
+        );
     }
 
     #[test]
@@ -1259,11 +1281,30 @@ mod tests {
         let expected_s = 2.0 / 3.0; // Laplace: (1+1)/(1+2)
         let expected_o = 1.5; // 1 + 0.5 * 1.0 (gamma * base_oracle)
         let expected_w = 1.0 * expected_d * expected_s * expected_o;
-        assert!((weight.value - expected_w).abs() < 1e-10, "W should be {:.3}, got {:.3}", expected_w, weight.value);
+        assert!(
+            (weight.value - expected_w).abs() < 1e-10,
+            "W should be {:.3}, got {:.3}",
+            expected_w,
+            weight.value
+        );
         assert!((weight.recency - 1.0).abs() < f64::EPSILON);
-        assert!((weight.depth - expected_d).abs() < 1e-10, "D̃ should be {:.3}, got {:.3}", expected_d, weight.depth);
-        assert!((weight.survival - expected_s).abs() < 1e-10, "S should be 2/3, got {:.3}", weight.survival);
-        assert!((weight.oracle - expected_o).abs() < 1e-10, "Oracle bonus should be {:.3}, got {:.3}", expected_o, weight.oracle);
+        assert!(
+            (weight.depth - expected_d).abs() < 1e-10,
+            "D̃ should be {:.3}, got {:.3}",
+            expected_d,
+            weight.depth
+        );
+        assert!(
+            (weight.survival - expected_s).abs() < 1e-10,
+            "S should be 2/3, got {:.3}",
+            weight.survival
+        );
+        assert!(
+            (weight.oracle - expected_o).abs() < 1e-10,
+            "Oracle bonus should be {:.3}, got {:.3}",
+            expected_o,
+            weight.oracle
+        );
     }
 
     #[test]
@@ -1441,8 +1482,8 @@ mod tests {
         // - No oracle linkage (basic science document)
         let whitepaper_claim = create_test_claim_with_version(
             1,
-            vec![], // No dependencies
-            100,    // Registered at block 100
+            vec![],                // No dependencies
+            100,                   // Registered at block 100
             VersionDOI::wp_v0_2(), // Self-references wp-v0.2
         );
 
@@ -1534,11 +1575,7 @@ mod tests {
         // The important thing is W > 0, not the exact value
         println!(
             "Whitepaper claim weight: W = {} (R={}, D̃={}, S={}, O={}, δ=1.0)",
-            weight.value,
-            weight.recency,
-            weight.depth,
-            weight.survival,
-            weight.oracle
+            weight.value, weight.recency, weight.depth, weight.survival, weight.oracle
         );
     }
 

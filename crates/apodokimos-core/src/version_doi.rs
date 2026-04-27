@@ -5,8 +5,8 @@
 //! maintaining backward compatibility and deterministic weight computation.
 
 use crate::ApodokimosError;
-use alloc::string::String;
 use alloc::str::FromStr;
+use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 /// A DOI identifying a specific protocol specification version (P-08)
@@ -104,15 +104,18 @@ impl VersionDOI {
 
     /// Extract the version component (e.g., "wp-v0.2" from "doi:10.xxxx/apodokimos.wp-v0.2")
     pub fn version_component(&self) -> Option<&str> {
-        self.0
-            .split("/apodokimos.")
-            .nth(1)
+        self.0.split("/apodokimos.").nth(1)
     }
 
     /// Check if this is a wp-v0.2 or later version
     pub fn is_v0_2_or_later(&self) -> bool {
         self.version_component()
-            .map(|v| v.starts_with("wp-v0.2") || v.starts_with("wp-v0.3") || v.starts_with("wp-v0.4") || v.starts_with("wp-v1"))
+            .map(|v| {
+                v.starts_with("wp-v0.2")
+                    || v.starts_with("wp-v0.3")
+                    || v.starts_with("wp-v0.4")
+                    || v.starts_with("wp-v1")
+            })
             .unwrap_or(false)
     }
 }
@@ -177,7 +180,7 @@ mod tests {
         let doi = VersionDOI::new("doi:10.5281/apodokimos.wp-v0.2").unwrap();
         let json = serde_json::to_string(&doi).unwrap();
         assert_eq!(json, "\"doi:10.5281/apodokimos.wp-v0.2\"");
-        
+
         let deserialized: VersionDOI = serde_json::from_str(&json).unwrap();
         assert_eq!(doi, deserialized);
     }

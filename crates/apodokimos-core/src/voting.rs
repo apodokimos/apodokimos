@@ -60,7 +60,9 @@ impl AccountSbt {
         }
 
         // Saturating sum to prevent overflow on pathological inputs
-        let sum: u64 = non_zero_scores.iter().fold(0u64, |acc, &x| acc.saturating_add(x));
+        let sum: u64 = non_zero_scores
+            .iter()
+            .fold(0u64, |acc, &x| acc.saturating_add(x));
         let count = non_zero_scores.len() as u64;
 
         Some(sum as f64 / count as f64)
@@ -81,7 +83,10 @@ impl AccountSbt {
     ///
     /// Returns None if the account has no score in that field.
     pub fn field_vote_weight(&self, field: &str) -> Option<f64> {
-        self.field_scores.get(field).copied().map(|s| (s as f64).sqrt())
+        self.field_scores
+            .get(field)
+            .copied()
+            .map(|s| (s as f64).sqrt())
     }
 }
 
@@ -110,13 +115,21 @@ mod tests {
         let field_weight = specialist.field_vote_weight("clinical-medicine");
         assert!(field_weight.is_some());
         let field_weight = field_weight.unwrap();
-        assert!((field_weight - 100.0).abs() < 1e-10, "Field weight should be 100, got {}", field_weight);
+        assert!(
+            (field_weight - 100.0).abs() < 1e-10,
+            "Field weight should be 100, got {}",
+            field_weight
+        );
 
         // Cross-field weight: sqrt(mean_nonzero([10000])) = sqrt(10000) = 100
         let cross_weight = specialist.cross_field_vote_weight();
         assert!(cross_weight.is_some());
         let cross_weight = cross_weight.unwrap();
-        assert!((cross_weight - 100.0).abs() < 1e-10, "Cross-field weight should be 100, got {}", cross_weight);
+        assert!(
+            (cross_weight - 100.0).abs() < 1e-10,
+            "Cross-field weight should be 100, got {}",
+            cross_weight
+        );
 
         // Specialist retains full weight across both metrics
         assert!(
@@ -161,9 +174,9 @@ mod tests {
         // Specialist with one strong field, many zero fields
         let specialist = AccountSbt::new("did:apodokimos:specialist")
             .with_field_score("clinical-medicine", 10000)
-            .with_field_score("physics", 0)  // Zero score
-            .with_field_score("mathematics", 0)  // Zero score
-            .with_field_score("biology", 0);  // Zero score
+            .with_field_score("physics", 0) // Zero score
+            .with_field_score("mathematics", 0) // Zero score
+            .with_field_score("biology", 0); // Zero score
 
         // Arithmetic mean over non-zero: mean([10000, 0, 0, 0]) = 10000 / 1 = 10000
         // (only counts non-zero fields)
@@ -192,16 +205,13 @@ mod tests {
     #[test]
     fn generalist_gets_averaged_weight() {
         // Specialist: 10000 in one field
-        let specialist = AccountSbt::new("did:specialist")
-            .with_field_score("clinical-medicine", 10000);
+        let specialist =
+            AccountSbt::new("did:specialist").with_field_score("clinical-medicine", 10000);
 
         // Generalist: 1000 in each of 10 fields (total 10000)
         let mut generalist = AccountSbt::new("did:generalist");
         for i in 0..10 {
-            generalist = generalist.with_field_score(
-                format!("field-{}", i),
-                1000
-            );
+            generalist = generalist.with_field_score(format!("field-{}", i), 1000);
         }
 
         let specialist_weight = specialist.cross_field_vote_weight().unwrap();
@@ -305,7 +315,11 @@ mod tests {
 
         // Each has mean_nonzero = 100, cross-field weight = 10
         let total = total_voting_weight(&accounts);
-        assert!((total - 30.0).abs() < 1e-10, "Total weight should be 30, got {}", total);
+        assert!(
+            (total - 30.0).abs() < 1e-10,
+            "Total weight should be 30, got {}",
+            total
+        );
     }
 
     /// Test: Diminishing returns on concentration (C-31, wp-v0.2 §7.1)
@@ -317,7 +331,7 @@ mod tests {
         let base = AccountSbt::new("did:base").with_field_score("field", 100);
         let doubled = AccountSbt::new("did:double").with_field_score("field", 400);
 
-        let base_weight = base.cross_field_vote_weight().unwrap();     // sqrt(100) = 10
+        let base_weight = base.cross_field_vote_weight().unwrap(); // sqrt(100) = 10
         let doubled_weight = doubled.cross_field_vote_weight().unwrap(); // sqrt(400) = 20
 
         // Score increased 4x (100 -> 400), weight increased 2x (10 -> 20)
@@ -368,7 +382,10 @@ mod tests {
         let frag4: Vec<_> = (0..4)
             .map(|i| AccountSbt::new(format!("did:frag4-{}", i)).with_field_score("field", 2500))
             .collect();
-        let frag4_total: f64 = frag4.iter().filter_map(|a| a.field_vote_weight("field")).sum();
+        let frag4_total: f64 = frag4
+            .iter()
+            .filter_map(|a| a.field_vote_weight("field"))
+            .sum();
         // Total: 4 × sqrt(2500) = 4 × 50 = 200
         assert!((frag4_total - 200.0).abs() < 1e-10);
 
@@ -376,7 +393,10 @@ mod tests {
         let frag10: Vec<_> = (0..10)
             .map(|i| AccountSbt::new(format!("did:frag10-{}", i)).with_field_score("field", 1000))
             .collect();
-        let frag10_total: f64 = frag10.iter().filter_map(|a| a.field_vote_weight("field")).sum();
+        let frag10_total: f64 = frag10
+            .iter()
+            .filter_map(|a| a.field_vote_weight("field"))
+            .sum();
         // Total: 10 × sqrt(1000) = 10 × 31.62 = 316.23
         assert!((frag10_total - 316.22776601683796).abs() < 1e-10);
 
@@ -384,7 +404,10 @@ mod tests {
         let frag100: Vec<_> = (0..100)
             .map(|i| AccountSbt::new(format!("did:frag100-{}", i)).with_field_score("field", 100))
             .collect();
-        let frag100_total: f64 = frag100.iter().filter_map(|a| a.field_vote_weight("field")).sum();
+        let frag100_total: f64 = frag100
+            .iter()
+            .filter_map(|a| a.field_vote_weight("field"))
+            .sum();
         // Total: 100 × sqrt(100) = 100 × 10 = 1000
         assert!((frag100_total - 1000.0).abs() < 1e-10);
 
@@ -403,7 +426,10 @@ mod tests {
             assert!(
                 (actual_total - expected_total).abs() < 1e-10,
                 "With {} fragments: expected {}× single weight = {}, got {}",
-                n, expected_multiplier, expected_total, actual_total
+                n,
+                expected_multiplier,
+                expected_total,
+                actual_total
             );
         }
 
@@ -460,7 +486,8 @@ mod tests {
         // Strategy 1: Single concentrated account
         // Cost: 10,000 work units → 1 account with 10,000 SBT
         // Voting power: sqrt(10,000) = 100
-        let strategy1 = AccountSbt::new("did:attacker-1").with_field_score("field", total_work_capacity);
+        let strategy1 =
+            AccountSbt::new("did:attacker-1").with_field_score("field", total_work_capacity);
         let power1 = strategy1.field_vote_weight("field").unwrap();
         assert!((power1 - 100.0).abs() < 1e-10);
 
@@ -469,9 +496,14 @@ mod tests {
         // But each account needs 100 SBT, requiring 100 independent work streams
         let sbt_per_sybil = total_work_capacity / 100;
         let sybils: Vec<_> = (0..100)
-            .map(|i| AccountSbt::new(format!("did:sybil-{}", i)).with_field_score("field", sbt_per_sybil))
+            .map(|i| {
+                AccountSbt::new(format!("did:sybil-{}", i)).with_field_score("field", sbt_per_sybil)
+            })
             .collect();
-        let power2: f64 = sybils.iter().filter_map(|a| a.field_vote_weight("field")).sum();
+        let power2: f64 = sybils
+            .iter()
+            .filter_map(|a| a.field_vote_weight("field"))
+            .sum();
         // Power: 100 × sqrt(100) = 100 × 10 = 1000
         assert!((power2 - 1000.0).abs() < 1e-10);
 

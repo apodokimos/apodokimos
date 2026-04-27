@@ -217,7 +217,11 @@ mod tests {
         let field = ClinicalMedicine::new();
         // One half-life: R = 2^(-1) = 0.5
         let r = field.compute_decay(1825);
-        assert!((r - 0.5).abs() < 0.001, "R at one half-life should be 0.5, got {}", r);
+        assert!(
+            (r - 0.5).abs() < 0.001,
+            "R at one half-life should be 0.5, got {}",
+            r
+        );
     }
 
     #[test]
@@ -225,7 +229,11 @@ mod tests {
         let field = ClinicalMedicine::new();
         // Two half-lives: R = 2^(-2) = 0.25
         let r = field.compute_decay(3650);
-        assert!((r - 0.25).abs() < 0.001, "R at two half-lives should be 0.25, got {}", r);
+        assert!(
+            (r - 0.25).abs() < 0.001,
+            "R at two half-lives should be 0.25, got {}",
+            r
+        );
     }
 
     #[test]
@@ -234,10 +242,10 @@ mod tests {
         // wp-v0.2 §3.2: R(c, t) = 2^(-Δt / t_½)
         // Verify at several points
         let test_cases = [
-            (0, 1.0),      // t=0: 2^0 = 1.0
-            (912, 0.707),  // t=0.5*t_½: 2^(-0.5) ≈ 0.707
-            (1825, 0.5),   // t=t_½: 2^(-1) = 0.5
-            (3650, 0.25),  // t=2*t_½: 2^(-2) = 0.25
+            (0, 1.0),     // t=0: 2^0 = 1.0
+            (912, 0.707), // t=0.5*t_½: 2^(-0.5) ≈ 0.707
+            (1825, 0.5),  // t=t_½: 2^(-1) = 0.5
+            (3650, 0.25), // t=2*t_½: 2^(-2) = 0.25
         ];
         for (days, expected) in test_cases {
             let r = field.compute_decay(days);

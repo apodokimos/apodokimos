@@ -244,6 +244,7 @@ impl Claim {
     /// );
     /// assert!(claim.spec_version_doi.is_v0_2_or_later());
     /// ```
+    #[allow(clippy::too_many_arguments)]
     pub fn with_version(
         claim_type: ClaimType,
         field_id: impl Into<String>,
