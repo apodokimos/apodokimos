@@ -274,6 +274,21 @@ impl Claim {
         }
     }
 
+    /// Validate a retraction discount value is in valid range [0, 1] and finite
+    fn validate_retraction_discount(discount: f64) -> Result<f64, ApodokimosError> {
+        if !discount.is_finite() {
+            return Err(ApodokimosError::AttestationValidation(
+                format!("retraction_discount must be finite, got {}", discount)
+            ));
+        }
+        if discount < 0.0 || discount > 1.0 {
+            return Err(ApodokimosError::AttestationValidation(
+                format!("retraction_discount must be in [0, 1], got {}", discount)
+            ));
+        }
+        Ok(discount)
+    }
+
     /// Apply a retraction discount to this claim (C-27, wp-v0.2 §5.2)
     ///
     /// This method returns a new Claim with the updated δ(c) value.

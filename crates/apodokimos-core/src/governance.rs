@@ -131,7 +131,7 @@ pub struct GovernanceAction {
 /// Verification result for a governance action
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VerificationResult {
-    /// Action is valid and has sufficient signatures
+    /// Action is valid and has sufficient signatures, and timelock elapsed
     Valid,
     /// Insufficient signatures (has k, needs n)
     InsufficientSignatures { has: u32, needs: u32 },
@@ -139,6 +139,8 @@ pub enum VerificationResult {
     InvalidSignature { signer: DID, reason: String },
     /// Signer not in governance set
     UnauthorizedSigner { signer: DID },
+    /// Timelock period has not elapsed since proposal
+    TimelockNotElapsed { proposed_at: u64, current_block: u64, required_delay: u32 },
 }
 
 /// Multi-signature governance verifier (C-29, wp-v0.2 §7.5)
@@ -243,6 +245,47 @@ impl GovernanceVerifier {
     /// Get the governance configuration
     pub fn config(&self) -> &GovernanceConfig {
         &self.config
+    }
+
+    /// Verify a governance action including timelock (wp-v0.2 §7.5)
+    ///
+    /// First checks k-of-n signatures, then verifies the timelock has elapsed.
+    /// Returns `TimelockNotElapsed` if signatures are valid but not enough
+    /// blocks have passed since `proposed_at`.
+    ///
+    /// # Arguments
+    /// - `action`: The governance action to verify
+    /// - `current_block`: Current block height for timelock check
+    pub fn verify_action_with_timelock(
+        &self,
+        action: &GovernanceAction,
+        current_block: u64,
+    ) -> VerificationResult {
+        // First verify signatures
+        let sig_result = self.verify_action(action);
+        
+        // If signatures failed, return that result
+        if !matches!(sig_result, VerificationResult::Valid) {
+            return sig_result;
+        }
+        
+        // Check timelock: convert hours to blocks (assuming ~12s blocks = 300 blocks/hour)
+        // This is a rough approximation; production may need more precise timekeeping
+        let blocks_per_hour = 300u64;
+        let required_delay = (self.config.timelock_hours as u64) * blocks_per_hour;
+        
+        // Handle potential overflow in addition
+        let min_required_block = action.proposed_at.saturating_add(required_delay);
+        
+        if current_block < min_required_block {
+            return VerificationResult::TimelockNotElapsed {
+                proposed_at: action.proposed_at,
+                current_block,
+                required_delay: self.config.timelock_hours,
+            };
+        }
+        
+        VerificationResult::Valid
     }
     
     /// Canonicalize an action for signing/verification (excludes signatures)

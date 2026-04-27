@@ -129,6 +129,40 @@ impl GraphSnapshot {
     pub fn get_claim(&self, claim_id: &ClaimId) -> Option<&Claim> {
         self.claims.get(claim_id)
     }
+
+    /// Apply retraction discounts to affected claims (C-27 fix)
+    ///
+    /// Updates the retraction discount δ(c) for each affected claim by
+    /// computing the cumulative discount factor needed to reach the target.
+    ///
+    /// # Panics
+    /// Panics if any `new_retraction_discount` is not in [0, 1] or not finite.
+    pub fn apply_retraction(&mut self, affected: &[AffectedClaim]) {
+        for aff in affected {
+            if let Some(claim) = self.claims.get_mut(&aff.claim_id) {
+                // Validate the new discount is valid
+                let target = aff.new_retraction_discount;
+                assert!(
+                    target.is_finite() && (0.0..=1.0).contains(&target),
+                    "invalid retraction discount: {} (must be finite and in [0, 1])",
+                    target
+                );
+                
+                // Compute the factor needed: target = current × factor
+                // factor = target / current
+                let current = claim.retraction_discount;
+                if current > 0.0 {
+                    let factor = target / current;
+                    claim.retraction_discount *= factor;
+                } else {
+                    claim.retraction_discount = target;
+                }
+                
+                // Clamp to handle floating point drift
+                claim.retraction_discount = claim.retraction_discount.clamp(0.0, 1.0);
+            }
+        }
+    }
 }
 
 /// Affected claim with retraction discount δ(c) per wp-v0.2 §5.2 (C-27)
@@ -405,6 +439,12 @@ impl WeightFunction {
             // δ_new = δ_old × (0.5^depth)
             let depth_factor = 0.5f64.powi(cascade_depth as i32);
             let old_delta = claim.retraction_discount;
+            
+            // Validate old_delta is finite and in valid range [0, 1]
+            if !old_delta.is_finite() || old_delta < 0.0 || old_delta > 1.0 {
+                continue;
+            }
+            
             let new_delta = old_delta * depth_factor;
 
             // W_post: weight with new δ
