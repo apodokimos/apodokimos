@@ -162,8 +162,8 @@ impl WeightFunction {
         // R(t): Time-decay recency (C-15)
         let recency = Self::compute_recency(claim, graph, field_schema);
 
-        // D: Dependency depth (C-16)
-        let depth = Self::compute_depth(claim, graph);
+        // D̃: Log-normalized dependency depth (C-23)
+        let depth = Self::compute_depth(claim, graph, field_schema);
 
         // S: Survival rate (C-17)
         let survival = Self::compute_survival(claim_id, graph);
@@ -201,15 +201,36 @@ impl WeightFunction {
         seconds / 86400 // seconds per day
     }
 
-    /// Compute D — dependency depth factor (C-16)
+    /// Compute D̃ — log-normalized dependency depth factor (C-23, wp-v0.2 §3.3)
     ///
-    /// D = 1.0 / (1 + depth) where depth is max dependency chain length
-    /// Claims with no dependencies have D = 1.0 (highest weight)
-    fn compute_depth(claim: &Claim, graph: &GraphSnapshot) -> f64 {
+    /// Formula: D̃(c) = [1 + ln(1 + D)] / [1 + ln(1 + D_ref)]
+    ///
+    /// Where:
+    /// - D = maximum dependency chain length for this claim
+    /// - D_ref = field-calibrated reference depth (typical for well-formed claims)
+    /// - ln = natural logarithm
+    ///
+    /// This log-normalization is "softer" than the wp-v0.1 linear penalty:
+    /// - D = 0 (no deps): D̃ = 1.0 / [1 + ln(1+D_ref)] (slight boost for standalone claims)
+    /// - D = D_ref: D̃ = 1.0 (reference normalization)
+    /// - D > D_ref: D̃ < 1.0 (logarithmic penalty for deep chains)
+    fn compute_depth(
+        claim: &Claim,
+        graph: &GraphSnapshot,
+        field_schema: &dyn FieldSchema,
+    ) -> f64 {
         let mut in_stack = BTreeMap::new();
         in_stack.insert(claim.id, ());
         let max_depth = Self::find_max_depth(&claim.depends_on, graph, 0, &mut in_stack);
-        1.0 / (1.0 + max_depth as f64)
+
+        let d = max_depth as f64;
+        let d_ref = field_schema.reference_depth() as f64;
+
+        // D̃(c) = [1 + ln(1 + D)] / [1 + ln(1 + D_ref)]
+        let numerator = 1.0 + (1.0 + d).ln();
+        let denominator = 1.0 + (1.0 + d_ref).ln();
+
+        numerator / denominator
     }
 
     /// Find maximum dependency depth using DFS with cycle detection.
@@ -756,6 +777,7 @@ mod tests {
 
     #[test]
     fn depth_no_dependencies() {
+        let field = ClinicalMedicine::new();
         let claim = create_test_claim(1, vec![], 0);
         let graph = GraphSnapshot::new(
             BTreeMap::from([(claim.id, claim.clone())]),
@@ -764,12 +786,20 @@ mod tests {
             6,
         );
 
-        let depth = WeightFunction::compute_depth(&claim, &graph);
-        assert!((depth - 1.0).abs() < f64::EPSILON);
+        // D=0, D_ref=3: D̃ = [1 + ln(1)] / [1 + ln(4)] = 1 / 2.386 = 0.419
+        let depth = WeightFunction::compute_depth(&claim, &graph, &field);
+        let expected = 1.0 / (1.0 + (4.0f64).ln());
+        assert!(
+            (depth - expected).abs() < 1e-10,
+            "D̃ with no deps should be ~{:.3}, got {:.3}",
+            expected,
+            depth
+        );
     }
 
     #[test]
     fn depth_with_dependencies() {
+        let field = ClinicalMedicine::new();
         let dep = create_test_claim(2, vec![], 0);
         let claim = create_test_claim(1, vec![dep.id], 0);
         let graph = GraphSnapshot::new(
@@ -779,8 +809,15 @@ mod tests {
             6,
         );
 
-        let depth = WeightFunction::compute_depth(&claim, &graph);
-        assert!((depth - 0.5).abs() < f64::EPSILON);
+        // D=1, D_ref=3: D̃ = [1 + ln(2)] / [1 + ln(4)] = 1.693 / 2.386 = 0.709
+        let depth = WeightFunction::compute_depth(&claim, &graph, &field);
+        let expected = (1.0 + (2.0f64).ln()) / (1.0 + (4.0f64).ln());
+        assert!(
+            (depth - expected).abs() < 1e-10,
+            "D̃ with one dep should be ~{:.3}, got {:.3}",
+            expected,
+            depth
+        );
     }
 
     #[test]
@@ -826,11 +863,16 @@ mod tests {
 
         let weight = WeightFunction::compute(&claim.id, &graph, &field, &oracle).unwrap();
 
-        // R=1.0 (new claim), D=1.0 (no deps), S=1.0 (all support), O=1.0 (peer reviewed)
-        // W = 1.0 × 1.0 × 1.0 × 1.0 = 1.0
-        assert!((weight.value - 1.0).abs() < f64::EPSILON);
+        // R=1.0 (new claim)
+        // D̃ = [1 + ln(1)] / [1 + ln(4)] = 0.419 (no deps, D_ref=3 for clinical medicine)
+        // S=1.0 (all support)
+        // O=1.0 (peer reviewed)
+        // W = 1.0 × 0.419 × 1.0 × 1.0 = 0.419
+        let expected_d = 1.0 / (1.0 + (4.0f64).ln());
+        let expected_w = 1.0 * expected_d * 1.0 * 1.0;
+        assert!((weight.value - expected_w).abs() < 1e-10, "W should be {:.3}, got {:.3}", expected_w, weight.value);
         assert!((weight.recency - 1.0).abs() < f64::EPSILON);
-        assert!((weight.depth - 1.0).abs() < f64::EPSILON);
+        assert!((weight.depth - expected_d).abs() < 1e-10, "D̃ should be {:.3}, got {:.3}", expected_d, weight.depth);
         assert!((weight.survival - 1.0).abs() < f64::EPSILON);
         assert!((weight.oracle - 1.0).abs() < f64::EPSILON);
     }
@@ -859,6 +901,7 @@ mod tests {
     /// returning depth 1 instead of 2.
     #[test]
     fn depth_diamond_dag_order_independent() {
+        let field = ClinicalMedicine::new();
         let b = create_test_claim(2, vec![], 0);
         let a = create_test_claim(3, vec![b.id], 0);
         // X depends on both A and B; longest path is X->A->B (depth 2)
@@ -871,11 +914,14 @@ mod tests {
             6,
         );
 
-        let depth = WeightFunction::compute_depth(&x, &graph);
-        // depth 2 => D = 1/(1+2) = 0.333...
+        // D=2, D_ref=3: D̃ = [1 + ln(3)] / [1 + ln(4)] = 2.099 / 2.386 = 0.880
+        let depth = WeightFunction::compute_depth(&x, &graph, &field);
+        let expected = (1.0 + (3.0f64).ln()) / (1.0 + (4.0f64).ln());
         assert!(
-            (depth - (1.0 / 3.0)).abs() < 1e-10,
-            "diamond DAG depth should be 2 (D=1/3), got D={depth}"
+            (depth - expected).abs() < 1e-10,
+            "diamond DAG D̃ (D=2) should be ~{:.3}, got {:.3}",
+            expected,
+            depth
         );
 
         // Also verify with reversed dependency order: X -> [A, B]
@@ -888,7 +934,7 @@ mod tests {
             100,
             6,
         );
-        let depth2 = WeightFunction::compute_depth(&x2, &graph2);
+        let depth2 = WeightFunction::compute_depth(&x2, &graph2, &field);
         assert!(
             (depth2 - depth).abs() < 1e-10,
             "depth must be identical regardless of dependency order: {depth} vs {depth2}"

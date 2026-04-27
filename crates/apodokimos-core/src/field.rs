@@ -37,6 +37,18 @@ pub trait FieldSchema: Send + Sync {
     /// - Physics: 7300 days (~20 years)
     fn decay_half_life(&self) -> u32;
 
+    /// Returns the field's reference dependency depth D_ref for D̃ normalization (wp-v0.2 §3.3)
+    ///
+    /// D_ref represents the "typical" maximum depth for well-formed claims in this field.
+    /// Claims with D ≤ D_ref have D̃ ≥ 1.0 (full or boosted weight); deeper claims are
+    /// logarithmically penalized.
+    ///
+    /// # Examples
+    /// - Clinical medicine: 3 (typical evidence chain: study → review → guideline)
+    /// - Physics: 5 (deeper theoretical derivations)
+    /// - Basic science: 2 (direct experimental claims)
+    fn reference_depth(&self) -> u32;
+
     /// Compute time-decay factor R(c, t) per wp-v0.2 §3.2
     ///
     /// Formula: R(c, t) = 2^(−Δt / t_½(c))
@@ -79,6 +91,11 @@ impl FieldSchema for ClinicalMedicine {
         // 5 years = 1825 days
         1825
     }
+
+    fn reference_depth(&self) -> u32 {
+        // Typical evidence chain depth: primary study → systematic review → clinical guideline
+        3
+    }
 }
 
 impl ClinicalMedicine {
@@ -109,6 +126,13 @@ mod tests {
     fn clinical_medicine_half_life() {
         let field = ClinicalMedicine::new();
         assert_eq!(field.decay_half_life(), 1825);
+    }
+
+    #[test]
+    fn clinical_medicine_reference_depth() {
+        let field = ClinicalMedicine::new();
+        // D_ref = 3: study → review → guideline
+        assert_eq!(field.reference_depth(), 3);
     }
 
     #[test]
