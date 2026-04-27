@@ -70,6 +70,19 @@ pub trait FieldSchema: Send + Sync {
         // 2^(-Δt/t_½) = 0.5^(Δt/t_½)
         2.0f64.powf(-(days_elapsed as f64) / self.decay_half_life() as f64)
     }
+
+    /// Returns the oracle bonus coefficient γ (gamma) per wp-v0.2 §3.5
+    ///
+    /// The oracle factor enters the weight formula as a bonus:
+    ///   W = R × D̃ × S × (1 + γ·O) × δ
+    ///
+    /// Where O ∈ [0, 1] is the base oracle credibility from `OFactorSource::factor_value()`.
+    ///
+    /// Typical values:
+    /// - 0.5 (moderate bonus): clinical medicine, applied sciences
+    /// - 1.0 (high bonus): physics, mathematics (peer review very reliable)
+    /// - 0.2 (low bonus): emerging fields, preprint-heavy domains
+    fn oracle_gamma(&self) -> f64;
 }
 
 /// Clinical medicine field schema with 5-year half-life
@@ -95,6 +108,11 @@ impl FieldSchema for ClinicalMedicine {
     fn reference_depth(&self) -> u32 {
         // Typical evidence chain depth: primary study → systematic review → clinical guideline
         3
+    }
+
+    fn oracle_gamma(&self) -> f64 {
+        // Moderate bonus for clinical medicine (peer review is important but not infallible)
+        0.5
     }
 }
 
@@ -133,6 +151,14 @@ mod tests {
         let field = ClinicalMedicine::new();
         // D_ref = 3: study → review → guideline
         assert_eq!(field.reference_depth(), 3);
+    }
+
+    #[test]
+    fn clinical_medicine_oracle_gamma() {
+        let field = ClinicalMedicine::new();
+        // γ = 0.5: moderate bonus for clinical medicine
+        // Oracle bonus = (1 + γ·O) ranges from 1.0 to 1.5
+        assert!((field.oracle_gamma() - 0.5).abs() < f64::EPSILON);
     }
 
     #[test]

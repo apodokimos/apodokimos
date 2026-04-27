@@ -14,7 +14,7 @@ use alloc::vec::Vec;
 /// Computed weight for a claim (P-03, wp-v0.2)
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ClaimWeight {
-    /// Final computed weight (W = R × D̃ × S × O × δ)
+    /// Final computed weight (W = R × D̃ × S × (1+γ·O) × δ)
     pub value: f64,
     /// Time-decay factor R(c,t) ∈ (0.0, 1.0] per wp-v0.2 §3.2
     pub recency: f64,
@@ -24,7 +24,8 @@ pub struct ClaimWeight {
     /// Laplace-smoothed survival rate S(c) ∈ (0, 1) per wp-v0.2 §3.4
     /// S = (N₊ + 1) / (N₊ + N₋ + 2) with uniform Beta(1,1) prior
     pub survival: f64,
-    /// Oracle factor O(c) ∈ [0.0, 1.0] per wp-v0.2 §3.5
+    /// Oracle bonus factor (1 + γ·O(c)) per wp-v0.2 §3.5
+    /// Range: [1.0, 1+γ] — always ≥ 1.0 (bonus, not penalty)
     pub oracle: f64,
 }
 
@@ -147,9 +148,17 @@ pub struct AffectedClaim {
 pub struct WeightFunction;
 
 impl WeightFunction {
-    /// Compute weight for a claim (C-14)
+    /// Compute weight for a claim (C-25, wp-v0.2 §3.1)
     ///
-    /// W(claim) = R(t) × D × S × O
+    /// Formula: W(c) = R(c,t) × D̃(c) × S(c) × (1 + γ·O(c)) × δ(c)
+    ///
+    /// Where:
+    /// - R(c,t): Time-decay recency factor [0, 1]
+    /// - D̃(c): Log-normalized dependency depth factor
+    /// - S(c): Laplace-smoothed survival rate (0, 1)
+    /// - O(c): Oracle credibility ∈ [0, 1]
+    /// - γ: Field-calibrated oracle bonus coefficient
+    /// - δ(c): Retraction discount factor [0, 1] (default 1.0, see C-27)
     pub fn compute(
         claim_id: &ClaimId,
         graph: &GraphSnapshot,
@@ -160,22 +169,31 @@ impl WeightFunction {
             .get_claim(claim_id)
             .ok_or_else(|| ApodokimosError::ClaimNotFound(claim_id.to_hex()))?;
 
-        // R(t): Time-decay recency (C-15)
+        // R(c,t): Time-decay recency factor (C-22)
         let recency = Self::compute_recency(claim, graph, field_schema);
 
-        // D̃: Log-normalized dependency depth (C-23)
+        // D̃(c): Log-normalized dependency depth (C-23)
         let depth = Self::compute_depth(claim, graph, field_schema);
 
-        // S: Survival rate (C-17)
+        // S(c): Laplace-smoothed survival rate (C-24)
         let survival = Self::compute_survival(claim_id, graph);
 
-        // O: Oracle factor (C-18)
-        let oracle = oracle_source.factor_value();
+        // O(c): Base oracle credibility ∈ [0, 1] (C-26)
+        let oracle_base = oracle_source.factor_value();
 
-        // W = R × D × S × O
-        let value = recency * depth * survival * oracle;
+        // Apply oracle as bonus: (1 + γ·O) where γ is field-calibrated (C-25/C-26)
+        let gamma = field_schema.oracle_gamma();
+        let oracle_bonus = 1.0 + gamma * oracle_base;
 
-        Ok(ClaimWeight::new(value, recency, depth, survival, oracle))
+        // δ(c): Retraction discount factor (C-27, currently neutral 1.0)
+        // TODO(C-27): Read from claim.retraction_discount field
+        let retraction_delta = 1.0;
+
+        // W = R × D̃ × S × (1 + γ·O) × δ
+        let value = recency * depth * survival * oracle_bonus * retraction_delta;
+
+        // Store the bonus-adjusted oracle factor in ClaimWeight
+        Ok(ClaimWeight::new(value, recency, depth, survival, oracle_bonus))
     }
 
     /// Compute R(c, t) — time-decay recency factor (C-22, wp-v0.2 §3.2)
@@ -891,16 +909,18 @@ mod tests {
         // R=1.0 (new claim)
         // D̃ = [1 + ln(1)] / [1 + ln(4)] = 0.419 (no deps, D_ref=3 for clinical medicine)
         // S = (1 + 1) / (1 + 2) = 2/3 ≈ 0.667 (Laplace smoothing, 1 supporting attestation)
-        // O=1.0 (peer reviewed)
-        // W = 1.0 × 0.419 × 0.667 × 1.0 ≈ 0.279
+        // O_base=1.0 (peer reviewed), γ=0.5 (clinical medicine oracle_gamma)
+        // Oracle bonus = (1 + γ·O) = 1 + 0.5·1.0 = 1.5
+        // W = 1.0 × 0.419 × 0.667 × 1.5 ≈ 0.419
         let expected_d = 1.0 / (1.0 + (4.0f64).ln());
         let expected_s = 2.0 / 3.0; // Laplace: (1+1)/(1+2)
-        let expected_w = 1.0 * expected_d * expected_s * 1.0;
+        let expected_o = 1.5; // 1 + 0.5 * 1.0 (gamma * base_oracle)
+        let expected_w = 1.0 * expected_d * expected_s * expected_o;
         assert!((weight.value - expected_w).abs() < 1e-10, "W should be {:.3}, got {:.3}", expected_w, weight.value);
         assert!((weight.recency - 1.0).abs() < f64::EPSILON);
         assert!((weight.depth - expected_d).abs() < 1e-10, "D̃ should be {:.3}, got {:.3}", expected_d, weight.depth);
         assert!((weight.survival - expected_s).abs() < 1e-10, "S should be 2/3, got {:.3}", weight.survival);
-        assert!((weight.oracle - 1.0).abs() < f64::EPSILON);
+        assert!((weight.oracle - expected_o).abs() < 1e-10, "Oracle bonus should be {:.3}, got {:.3}", expected_o, weight.oracle);
     }
 
     #[test]
