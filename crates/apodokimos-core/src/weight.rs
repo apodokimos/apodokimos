@@ -131,17 +131,20 @@ impl GraphSnapshot {
     }
 }
 
-/// Affected claim with new weight after retraction (C-19)
+/// Affected claim with retraction discount δ(c) per wp-v0.2 §5.2 (C-27)
 #[derive(Debug, Clone)]
 pub struct AffectedClaim {
     /// The affected claim ID
     pub claim_id: ClaimId,
-    /// Previous weight before retraction
+    /// Weight before retraction (W_pre = weight with current δ)
     pub previous_weight: f64,
-    /// New weight after retraction
+    /// Weight after retraction (W_post = weight with new δ)
     pub new_weight: f64,
     /// Depth in the cascade (1 = direct dependent)
     pub cascade_depth: u32,
+    /// New retraction discount δ(c) ∈ [0, 1] (C-27)
+    /// new_δ = old_δ × (0.5^cascade_depth)
+    pub new_retraction_discount: f64,
 }
 
 /// Weight function implementation (C-14)
@@ -185,9 +188,9 @@ impl WeightFunction {
         let gamma = field_schema.oracle_gamma();
         let oracle_bonus = 1.0 + gamma * oracle_base;
 
-        // δ(c): Retraction discount factor (C-27, currently neutral 1.0)
-        // TODO(C-27): Read from claim.retraction_discount field
-        let retraction_delta = 1.0;
+        // δ(c): Retraction discount factor from claim (C-27, wp-v0.2 §5.2)
+        // Default 1.0 (no retraction penalty). Set to < 1.0 when dependencies retracted.
+        let retraction_delta = claim.retraction_discount;
 
         // W = R × D̃ × S × (1 + γ·O) × δ
         let value = recency * depth * survival * oracle_bonus * retraction_delta;
@@ -341,14 +344,18 @@ impl WeightFunction {
         numerator / denominator
     }
 
-    /// Propagate retraction penalty through dependency graph (C-19)
+    /// Propagate retraction penalty through dependency graph (C-27, wp-v0.2 §5.2)
     ///
-    /// Uses BFS ordered by cascade depth so that each dependent claim always
-    /// receives the penalty from the *shortest* path from the retracted claim,
-    /// regardless of `BTreeMap` iteration order. This guarantees deterministic
-    /// results on any graph topology (R8/R9).
+    /// Uses BFS ordered by cascade depth. Each dependent claim receives a
+    /// multiplicative retraction discount:
+    ///   δ_new(c) = δ_old(c) × (0.5^depth)
     ///
-    /// Penalty factor: 0.5^depth — 0.5 at depth 1, 0.25 at depth 2, etc.
+    /// Where depth is the shortest path distance from the retracted claim.
+    /// This ensures deterministic results regardless of `BTreeMap` iteration order.
+    ///
+    /// # Returns
+    /// Vec of `AffectedClaim` containing claim_id, W_pre, W_post, cascade_depth,
+    /// and the new δ(c) value to apply to the claim.
     pub fn propagate_retraction(
         retracted_claim_id: &ClaimId,
         graph: &GraphSnapshot,
@@ -357,8 +364,6 @@ impl WeightFunction {
         let oracle = OFactorSource::None;
         let mut affected = Vec::new();
         // BFS frontier: (claim_id, cascade_depth)
-        // Using a Vec as a FIFO queue; depth increases monotonically so earlier
-        // entries always have depth <= later entries (BFS property).
         let mut queue: Vec<(ClaimId, u32)> = Vec::new();
         // Track the minimum cascade_depth at which each claim was first reached.
         let mut visited: BTreeMap<ClaimId, u32> = BTreeMap::new();
@@ -378,29 +383,46 @@ impl WeightFunction {
             let (claim_id, cascade_depth) = queue[head];
             head += 1;
 
-            // Hard cap: matches the depth limit used in find_max_depth
+            // Hard cap: prevent excessive cascade depth
             if cascade_depth > 5 {
                 continue;
             }
 
-            let penalty_factor = 0.5f64.powi(cascade_depth as i32);
+            // Get the claim to read its current retraction discount
+            let claim = match graph.get_claim(&claim_id) {
+                Some(c) => c,
+                None => continue,
+            };
 
-            let previous_weight = match Self::compute(&claim_id, graph, field_schema, &oracle) {
+            // W_pre: weight with current δ (before this retraction)
+            let w_pre = match Self::compute(&claim_id, graph, field_schema, &oracle) {
                 Ok(w) => w.value,
                 Err(_) => continue,
             };
 
-            let new_weight = previous_weight * penalty_factor;
+            // δ_new = δ_old × (0.5^depth)
+            let depth_factor = 0.5f64.powi(cascade_depth as i32);
+            let old_delta = claim.retraction_discount;
+            let new_delta = old_delta * depth_factor;
+
+            // W_post: weight with new δ
+            // W = R × D̃ × S × (1+γ·O) × δ, so W_post = W_pre × (new_δ / old_δ)
+            let w_post = if old_delta > 0.0 {
+                w_pre * (new_delta / old_delta)
+            } else {
+                0.0
+            };
 
             affected.push(AffectedClaim {
                 claim_id,
-                previous_weight,
-                new_weight,
+                previous_weight: w_pre,
+                new_weight: w_post,
                 cascade_depth,
+                new_retraction_discount: new_delta,
             });
 
             // Only continue cascade if weight is still significant
-            if new_weight <= 0.01 {
+            if w_post <= 0.01 {
                 continue;
             }
 
@@ -691,6 +713,7 @@ mod tests {
             arweave_tx: "test-tx".into(),
             registered,
             spec_version_doi: crate::VersionDOI::wp_v0_2(),
+            retraction_discount: 1.0,
         }
     }
 
@@ -1030,5 +1053,43 @@ mod tests {
             "C is a direct dep of A; must get cascade_depth=1, got {}",
             c_affected.cascade_depth
         );
+
+        // For depth 1: new_δ = 1.0 × 0.5^1 = 0.5
+        assert!(
+            (d_affected.new_retraction_discount - 0.5).abs() < 1e-10,
+            "D should have δ=0.5 at depth 1, got {}",
+            d_affected.new_retraction_discount
+        );
+        assert!(
+            (c_affected.new_retraction_discount - 0.5).abs() < 1e-10,
+            "C should have δ=0.5 at depth 1, got {}",
+            c_affected.new_retraction_discount
+        );
+
+        // Verify W_post = W_pre × (new_δ / old_δ) = W_pre × 0.5
+        assert!(
+            (c_affected.new_weight - c_affected.previous_weight * 0.5).abs() < 1e-10,
+            "C weight should be halved: {} vs expected {}",
+            c_affected.new_weight,
+            c_affected.previous_weight * 0.5
+        );
+    }
+
+    /// Test retraction discount δ(c) is multiplicative across multiple retractions (C-27)
+    #[test]
+    fn retraction_discount_multiplicative() {
+        let claim = create_test_claim(1, vec![], 0);
+
+        // First retraction: δ = 1.0 × 0.5 = 0.5
+        let claim_after_1 = claim.clone().with_retraction_discount(0.5);
+        assert!((claim_after_1.retraction_discount - 0.5).abs() < 1e-10);
+
+        // Second retraction: δ = 0.5 × 0.5 = 0.25
+        let claim_after_2 = claim_after_1.with_retraction_discount(0.5);
+        assert!((claim_after_2.retraction_discount - 0.25).abs() < 1e-10);
+
+        // Third retraction: δ = 0.25 × 0.5 = 0.125
+        let claim_after_3 = claim_after_2.with_retraction_discount(0.5);
+        assert!((claim_after_3.retraction_discount - 0.125).abs() < 1e-10);
     }
 }

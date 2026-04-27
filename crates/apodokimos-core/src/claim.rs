@@ -155,7 +155,7 @@ pub type FieldId = String;
 pub type BlockNumber = u64;
 
 /// Claim — minimal unit of falsifiable scientific assertion (P-01, P-08)
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Claim {
     /// Blake3 hash of canonical JSON claim content
     pub id: ClaimId,
@@ -175,6 +175,17 @@ pub struct Claim {
     pub registered: BlockNumber,
     /// Protocol specification Version DOI (wp-v0.2 §2.2)
     pub spec_version_doi: VersionDOI,
+    /// Retraction discount factor δ(c) ∈ [0, 1] (wp-v0.2 §5.2)
+    ///
+    /// Default: 1.0 (no retraction penalty). When a dependency is retracted,
+    /// this factor is reduced to δ(c) = W_post / W_pre, where W_pre is the
+    /// weight computed before retraction and W_post is the weight after.
+    #[serde(default = "default_retraction_discount")]
+    pub retraction_discount: f64,
+}
+
+fn default_retraction_discount() -> f64 {
+    1.0
 }
 
 /// Content of a claim (CC0 schema)
@@ -259,7 +270,28 @@ impl Claim {
             arweave_tx: arweave_tx.into(),
             registered,
             spec_version_doi,
+            retraction_discount: 1.0,
         }
+    }
+
+    /// Apply a retraction discount to this claim (C-27, wp-v0.2 §5.2)
+    ///
+    /// This method returns a new Claim with the updated δ(c) value.
+    /// The discount is multiplicative: new_δ = old_δ × discount_factor.
+    ///
+    /// # Panics
+    /// Panics if the resulting discount would be < 0 or > 1.
+    #[must_use]
+    pub fn with_retraction_discount(mut self, discount_factor: f64) -> Self {
+        assert!(
+            (0.0..=1.0).contains(&discount_factor),
+            "discount_factor must be in [0, 1], got {}",
+            discount_factor
+        );
+        self.retraction_discount *= discount_factor;
+        // Clamp to [0, 1] to handle floating point drift
+        self.retraction_discount = self.retraction_discount.clamp(0.0, 1.0);
+        self
     }
 
     /// Verify the claim ID matches the content hash
