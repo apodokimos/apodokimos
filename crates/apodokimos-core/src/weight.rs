@@ -177,9 +177,12 @@ impl WeightFunction {
         Ok(ClaimWeight::new(value, recency, depth, survival, oracle))
     }
 
-    /// Compute R(t) — time-decay recency factor (C-15)
+    /// Compute R(c, t) — time-decay recency factor (C-22, wp-v0.2 §3.2)
     ///
-    /// Uses field-calibrated half-life from FieldSchema
+    /// Formula: R(c, t) = 2^(−Δt / t_½(c))
+    ///
+    /// Uses field-calibrated half-life t_½ from FieldSchema. The base-2 exponential
+    /// ensures R = 0.5 at exactly one half-life, R = 0.25 at two half-lives, etc.
     fn compute_recency(
         claim: &Claim,
         graph: &GraphSnapshot,

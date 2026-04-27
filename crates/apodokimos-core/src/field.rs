@@ -37,15 +37,26 @@ pub trait FieldSchema: Send + Sync {
     /// - Physics: 7300 days (~20 years)
     fn decay_half_life(&self) -> u32;
 
-    /// Compute time-decay factor R(t) for a given elapsed time
+    /// Compute time-decay factor R(c, t) per wp-v0.2 §3.2
+    ///
+    /// Formula: R(c, t) = 2^(−Δt / t_½(c))
+    ///
+    /// Where:
+    /// - Δt = days elapsed since claim registration
+    /// - t_½(c) = field-calibrated half-life in days
+    ///
+    /// At Δt = 0: R = 1.0 (no decay)
+    /// At Δt = t_½: R = 0.5 (one half-life)
+    /// At Δt = 2·t_½: R = 0.25 (two half-lives)
     ///
     /// # Arguments
-    /// * `days_elapsed` - Days since claim registration
+    /// * `days_elapsed` - Days since claim registration (Δt)
     ///
     /// # Returns
-    /// Decay factor in range [0.0, 1.0] where 1.0 = no decay, 0.5 = one half-life
+    /// Decay factor in range [0.0, 1.0]
     fn compute_decay(&self, days_elapsed: u32) -> f64 {
-        0.5f64.powf(days_elapsed as f64 / self.decay_half_life() as f64)
+        // 2^(-Δt/t_½) = 0.5^(Δt/t_½)
+        2.0f64.powf(-(days_elapsed as f64) / self.decay_half_life() as f64)
     }
 }
 
@@ -129,15 +140,40 @@ mod tests {
     #[test]
     fn compute_decay_at_half_life() {
         let field = ClinicalMedicine::new();
-        // One half-life elapsed = 0.5 decay factor
-        assert!((field.compute_decay(1825) - 0.5).abs() < 0.001);
+        // One half-life: R = 2^(-1) = 0.5
+        let r = field.compute_decay(1825);
+        assert!((r - 0.5).abs() < 0.001, "R at one half-life should be 0.5, got {}", r);
     }
 
     #[test]
     fn compute_decay_at_two_half_lives() {
         let field = ClinicalMedicine::new();
-        // Two half-lives = 0.25 decay factor
-        assert!((field.compute_decay(3650) - 0.25).abs() < 0.001);
+        // Two half-lives: R = 2^(-2) = 0.25
+        let r = field.compute_decay(3650);
+        assert!((r - 0.25).abs() < 0.001, "R at two half-lives should be 0.25, got {}", r);
+    }
+
+    #[test]
+    fn compute_decay_formula_matches_wp_v0_2() {
+        let field = ClinicalMedicine::new();
+        // wp-v0.2 §3.2: R(c, t) = 2^(-Δt / t_½)
+        // Verify at several points
+        let test_cases = [
+            (0, 1.0),      // t=0: 2^0 = 1.0
+            (912, 0.707),  // t=0.5*t_½: 2^(-0.5) ≈ 0.707
+            (1825, 0.5),   // t=t_½: 2^(-1) = 0.5
+            (3650, 0.25),  // t=2*t_½: 2^(-2) = 0.25
+        ];
+        for (days, expected) in test_cases {
+            let r = field.compute_decay(days);
+            assert!(
+                (r - expected).abs() < 0.01,
+                "R({}) should be ~{}, got {}",
+                days,
+                expected,
+                r
+            );
+        }
     }
 
     #[test]
