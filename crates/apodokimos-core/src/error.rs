@@ -43,6 +43,10 @@ pub enum ApodokimosError {
     /// Invalid Version DOI format
     #[error("invalid version doi: {0}")]
     InvalidVersionDOI(String),
+
+    /// Governance action validation failed (C-29)
+    #[error("governance error: {0}")]
+    Governance(String),
 }
 
 impl ApodokimosError {
