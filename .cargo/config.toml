@@ -2,9 +2,9 @@
 target = "wasm32-unknown-unknown"
 
 [alias]
-check-all = "check --workspace --all-targets"
-test-all = "test --workspace"
-lint = "clippy --workspace --all-targets -- -D warnings"
+check-all = "check --workspace --all-targets --target x86_64-unknown-linux-gnu"
+test-all = "test --workspace --all-targets --target x86_64-unknown-linux-gnu"
+lint = "clippy --workspace --all-targets --target x86_64-unknown-linux-gnu -- -D warnings"
 
 [target.wasm32-unknown-unknown]
 rustflags = ["-C", "target-cpu=mvp", "-C", "link-arg=--export-table"]

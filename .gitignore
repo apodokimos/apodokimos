@@ -11,6 +11,7 @@ Thumbs.db
 .vscode/
 .idea/
 .windsurf/
+.zed/
 *.swp
 *.swo
 *~

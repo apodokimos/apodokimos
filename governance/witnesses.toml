@@ -1,0 +1,31 @@
+# Apodokimos Genesis Witness Set
+#
+# Purpose:
+#   Independent witness co-signatures over Signed Tree Heads (STHs)
+#   to reduce split-view risk in the transparency log layer.
+#
+# Scope:
+#   Phase 3 RI-08 (TODO.md), wp-v0.2 architecture: transparency log witnesses.
+
+version = 1
+quorum = 2
+
+[[witness]]
+id = "did:apodokimos:witness:GENESIS_1"
+public_key = "<TO-BE-ASSIGNED-AT-ANCHOR>"
+role = "operator"
+
+[[witness]]
+id = "did:apodokimos:witness:GENESIS_2"
+public_key = "<TO-BE-ASSIGNED-AT-ANCHOR>"
+role = "operator"
+
+[[witness]]
+id = "did:apodokimos:witness:GENESIS_3"
+public_key = "<TO-BE-ASSIGNED-AT-ANCHOR>"
+role = "independent-auditor"
+
+# Notes:
+# - Keys are Ed25519 public keys encoded as lowercase hex (32 bytes => 64 chars).
+# - Witness signatures cover canonical STH bytes (tree_size, root_hash, timestamp_ms, log_id).
+# - Quorum can be raised by governance action as operator count grows.

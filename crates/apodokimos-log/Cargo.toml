@@ -1,0 +1,30 @@
+[package]
+name = "apodokimos-log"
+version = "0.1.0"
+edition = "2024"
+authors = ["Apodokimos Contributors"]
+license = "AGPL-3.0-only"
+repository = "https://github.com/apodokimos/apodokimos"
+description = "Transparency log client for Apodokimos (RFC 6962 style)"
+rust-version = "1.85"
+
+[dependencies]
+apodokimos-core = { path = "../apodokimos-core", version = "0.3.0" }
+thiserror = { workspace = true }
+serde = { workspace = true, features = ["derive", "alloc"] }
+serde_json = { workspace = true, features = ["alloc"] }
+sha2 = { workspace = true }
+ed25519-dalek = { workspace = true, features = ["alloc"] }
+hex = { workspace = true, features = ["alloc"] }
+
+[features]
+default = ["std"]
+std = [
+    "serde/std",
+    "serde_json/std",
+    "sha2/std",
+    "ed25519-dalek/std",
+    "hex/std",
+    "thiserror/std",
+    "apodokimos-core/std",
+]

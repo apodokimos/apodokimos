@@ -13,7 +13,7 @@ version = 2
 # Suppress warnings about allowed licenses not currently used by dependencies
 unused-allowed-license = "allow"
 allow = [
-    "AGPL-3.0",
+    "AGPL-3.0-only",
     "Apache-2.0",
     "MIT",
     "BSD-2-Clause",
@@ -36,10 +36,7 @@ ignore = []
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-allow-git = [
-    "https://github.com/paritytech/substrate",
-    "https://github.com/paritytech/polkadot-sdk",
-]
+allow-git = []
 
 [bans]
 multiple-versions = "warn"

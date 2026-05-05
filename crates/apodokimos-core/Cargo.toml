@@ -3,7 +3,7 @@ name = "apodokimos-core"
 version = "0.3.0"
 edition = "2024"
 authors = ["Apodokimos Contributors"]
-license = "AGPL-3.0"
+license = "AGPL-3.0-only"
 repository = "https://github.com/apodokimos/apodokimos"
 description = "Core protocol types for Apodokimos Epistemic Contribution Graph"
 rust-version = "1.85"
@@ -23,4 +23,3 @@ rand = { version = "0.8" }
 [features]
 default = ["std"]
 std = ["thiserror/std", "serde/std", "serde_json/std", "blake3/std", "hex/std", "ed25519-dalek/std"]
-

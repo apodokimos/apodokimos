@@ -88,13 +88,23 @@ By making a contribution to this project, I certify that:
    - Add tests for new functionality
    - Update documentation as needed
 4. **Run checks**:
+
    ```bash
-   cargo fmt --check
-   cargo clippy --deny warnings
-   cargo test
+   cargo fmt --all -- --check
+   cargo clippy --workspace --all-targets --target x86_64-unknown-linux-gnu -- -D warnings
+   cargo test --workspace --all-targets --target x86_64-unknown-linux-gnu
    cargo audit
    cargo deny check
    ```
+
+   > Note: the workspace default build target is `wasm32-unknown-unknown`; for CI parity and stable local lint/test runs, use the explicit native target commands above.
+
+   Or run the one-command local gate:
+
+   ```bash
+   ./scripts/quality-gate.sh
+   ```
+
 5. **Commit your changes** with DCO sign-off:
    ```bash
    git commit -s -m "type: description"

@@ -10,6 +10,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 ---
 
 ## Phase 0 — Foundation
+
 > Prerequisite for all code. No code written before this phase is complete.
 
 ### Repository & Governance
@@ -42,7 +43,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [x] F-20 — Create `.github/workflows/audit.yml` — `cargo audit` on push + weekly schedule
 - [x] F-21 — Create `.github/workflows/deny.yml` — `cargo deny check` (licenses, advisories, bans)
 - [x] F-22 — Create `.github/workflows/fmt.yml` — `cargo fmt --check`
-- [ ] F-23 — Add branch protection rules: require CI green before merge, no force push to `main` *(requires manual GitHub UI configuration)*
+- [ ] F-23 — Add branch protection rules: require CI green before merge, no force push to `main` _(requires manual GitHub UI configuration)_
 - [x] F-24 — Configure Dependabot for Cargo and npm weekly updates
 
 ### v0.2 additions
@@ -55,20 +56,21 @@ SemVer milestones marked as `### vX.Y.Z`.
 ---
 
 ## Phase 1 — Protocol Specification (wp-v0.1)
+
 > All tasks below were completed against wp-v0.1. wp-v0.2 supersedes the formulas marked below; the original tasks remain checked as historical record. wp-v0.2 follow-ups are tracked under "Phase 1' — wp-v0.2 Specification Work" below.
 
 ### Claim Model Formalization
 
 - [x] P-01 — Define `ClaimType` taxonomy: `PrimaryClaim | Hypothesis | Method | Result | Replication | Null`
 - [x] P-02 — Define `AttestationVerdict` enum: `Supports | Contradicts | Replicates | Refutes | Mentions`
-- [x] P-03 — Formally specify W(claim) = R(t) × D × S × O with typed definitions for each variable *(targets wp-v0.1; superseded by wp-v0.2 §3.1 and tracked under V-04 below)*
-- [x] P-04 — Define field-calibrated time-decay function for R(t) per domain class *(targets wp-v0.1; reparameterized as half-life in wp-v0.2; see V-04)*
-- [x] P-05 — Define dependency depth D: DAG traversal algorithm specification *(targets wp-v0.1; log-normalized as D̃ in wp-v0.2; see V-04)*
-- [x] P-06 — Define survival rate S: ratio of supporting to total non-mentioning attestations *(targets wp-v0.1; Laplace-smoothed in wp-v0.2; see V-04)*
-- [x] P-07 — Define O factor: enumerated oracle source types and linkage schema *(targets wp-v0.1; bonus form `(1 + γO)` in wp-v0.2; see V-04)*
-- [x] P-08 — Define penalty propagation: retraction event cascades to dependent claims *(targets wp-v0.1; explicit δ persistence in wp-v0.2; see V-04)*
+- [x] P-03 — Formally specify W(claim) = R(t) × D × S × O with typed definitions for each variable _(targets wp-v0.1; superseded by wp-v0.2 §3.1 and tracked under V-04 below)_
+- [x] P-04 — Define field-calibrated time-decay function for R(t) per domain class _(targets wp-v0.1; reparameterized as half-life in wp-v0.2; see V-04)_
+- [x] P-05 — Define dependency depth D: DAG traversal algorithm specification _(targets wp-v0.1; log-normalized as D̃ in wp-v0.2; see V-04)_
+- [x] P-06 — Define survival rate S: ratio of supporting to total non-mentioning attestations _(targets wp-v0.1; Laplace-smoothed in wp-v0.2; see V-04)_
+- [x] P-07 — Define O factor: enumerated oracle source types and linkage schema _(targets wp-v0.1; bonus form `(1 + γO)` in wp-v0.2; see V-04)_
+- [x] P-08 — Define penalty propagation: retraction event cascades to dependent claims _(targets wp-v0.1; explicit δ persistence in wp-v0.2; see V-04)_
 - [x] P-09 — Define SBT reputation score structure: `{ field_id, score, attestation_count, survival_rate }`
-- [x] P-10 — Define quadratic SBT voting weight formula *(targets wp-v0.1; cross-field formula corrected in wp-v0.2; see V-05)*
+- [x] P-10 — Define quadratic SBT voting weight formula _(targets wp-v0.1; cross-field formula corrected in wp-v0.2; see V-05)_
 - [x] P-11 — Write `WHITEPAPER.md` — ECG technical specification (versioned, `wp-v0.1`):
   - [x] P-11a — Abstract: problem statement (IF misalignment, DeSci ontology failure)
   - [x] P-11b — Claim model: formal definition, types, granularity constraints
@@ -79,11 +81,11 @@ SemVer milestones marked as `### vX.Y.Z`.
   - [x] P-11g — Governance: quadratic SBT voting, proposal lifecycle, attack surface analysis
   - [x] P-11h — Identity layer: DID integration, ZK credential proof scheme
   - [x] P-11i — Arweave content layer: tagging schema, hash binding, permanence guarantees
-  - [x] P-11j — Substrate pallet architecture: storage, extrinsics, events per pallet *(superseded by wp-v0.2 §10; preserved as Alternative A in ARCHITECTURE.md)*
+  - [x] P-11j — Substrate pallet architecture: storage, extrinsics, events per pallet _(superseded by wp-v0.2 §10; preserved as Alternative A in ARCHITECTURE.md)_
   - [x] P-11k — Bootstrap strategy: clinical medicine pilot rationale and PICO schema
   - [x] P-11l — Security analysis: Sybil, governance capture, oracle manipulation, GDPR
   - [x] P-11m — Anchor `WHITEPAPER.md` on Arweave + Zenodo (DOI for timestamped priority)
-  - [ ] P-11n — Register whitepaper as first Apodokimos claim on testnet (protocol validates itself) *(re-pointed to wp-v0.2; see V-08)*
+  - [ ] P-11n — Register whitepaper as first Apodokimos claim on testnet (protocol validates itself) _(re-pointed to wp-v0.2; see V-08)_
 
 ### Field Schema: Clinical Medicine Bootstrap
 
@@ -96,20 +98,22 @@ SemVer milestones marked as `### vX.Y.Z`.
 ---
 
 ## Phase 1' — wp-v0.2 Specification Work
+
 > Specification-level tasks introduced or completed in the wp-v0.2 round. Distinct from implementation tasks (those are in Phase 2'+).
 
 - [x] V-01 — Anchor `WHITEPAPER_v0.2.md` to Zenodo as new version of wp-v0.1 record (Version DOI: `10.5281/zenodo.19763292`)
 - [x] V-02 — Commit `WHITEPAPER/WHITEPAPER_v0.2.md` to repo with header pointing at its own Version DOI
-- [x] V-03 — Update `WHITEPAPER/WHITEPAPER.md` (wp-v0.1) header to add a "Superseded by" pointer to wp-v0.2 *(metadata-only edit, document bytes preserved)*
+- [x] V-03 — Update `WHITEPAPER/WHITEPAPER.md` (wp-v0.1) header to add a "Superseded by" pointer to wp-v0.2 _(metadata-only edit, document bytes preserved)_
 - [x] V-04 — Document the wp-v0.2 W(c, t) revision in a `CHANGELOG-WHITEPAPER.md` at repo root: Laplace smoothing for R and S, log-normalized D̃, multiplicative O bonus, explicit δ retraction discount (per wp-v0.2 Appendix D)
 - [x] V-05 — Document the wp-v0.2 cross-field voting correction (geomean → arithmetic mean over non-zero) in `CHANGELOG-WHITEPAPER.md`
 - [x] V-06 — Document the §1.6 versioning convention in `CHANGELOG-WHITEPAPER.md`: Version DOI for archival, Concept DOI for navigation, placeholder discipline for drafts
 - [ ] V-07 — Once Concept DOI is visible on Zenodo's Versions panel, update README to display it explicitly (currently a forward-pointer)
-- [ ] V-08 — Register wp-v0.2 as the first ECG claim on testnet, with `spec_version_doi = 10.5281/zenodo.19763292` *(blocks on RI- testnet readiness; supersedes P-11n)*
+- [ ] V-08 — Register wp-v0.2 as the first ECG claim on testnet, with `spec_version_doi = 10.5281/zenodo.19763292` _(blocks on RI- testnet readiness; supersedes P-11n)_
 
 ---
 
 ## Phase 2 — `apodokimos-core`
+
 > AGPL-3.0 | `no_std` compatible | MSRV: latest stable
 
 ### `v0.1.0` (wp-v0.1 baseline)
@@ -129,13 +133,13 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ### `v0.2.0` (W computation, wp-v0.1 formulas)
 
-- [x] C-14 — Implement `WeightFunction::compute(claim_id, graph_snapshot) -> ClaimWeight` *(implements wp-v0.1 W; superseded by C-25 implementing wp-v0.2 W)*
-- [x] C-15 — Implement R(t) time-decay with field-calibrated half-life *(targets wp-v0.1; superseded by C-22)*
-- [x] C-16 — Implement D dependency depth traversal on DAG *(targets wp-v0.1; superseded by C-23)*
-- [x] C-17 — Implement S survival rate from attestation set *(targets wp-v0.1; superseded by C-24)*
-- [x] C-18 — Implement O factor: typed `OFactorSource` enum + linkage validation *(targets wp-v0.1; superseded by C-26)*
-- [x] C-19 — Implement penalty propagation: `propagate_retraction(claim_id, graph) -> Vec<AffectedClaim>` *(targets wp-v0.1; superseded by C-27)*
-- [x] C-20 — Write property-based tests with `proptest` for weight function monotonicity *(targets wp-v0.1; superseded by C-30)*
+- [x] C-14 — Implement `WeightFunction::compute(claim_id, graph_snapshot) -> ClaimWeight` _(implements wp-v0.1 W; superseded by C-25 implementing wp-v0.2 W)_
+- [x] C-15 — Implement R(t) time-decay with field-calibrated half-life _(targets wp-v0.1; superseded by C-22)_
+- [x] C-16 — Implement D dependency depth traversal on DAG _(targets wp-v0.1; superseded by C-23)_
+- [x] C-17 — Implement S survival rate from attestation set _(targets wp-v0.1; superseded by C-24)_
+- [x] C-18 — Implement O factor: typed `OFactorSource` enum + linkage validation _(targets wp-v0.1; superseded by C-26)_
+- [x] C-19 — Implement penalty propagation: `propagate_retraction(claim_id, graph) -> Vec<AffectedClaim>` _(targets wp-v0.1; superseded by C-27)_
+- [x] C-20 — Write property-based tests with `proptest` for weight function monotonicity _(targets wp-v0.1; superseded by C-30)_
 
 ### `v0.3.0` — wp-v0.2 math correction
 
@@ -157,20 +161,21 @@ SemVer milestones marked as `### vX.Y.Z`.
 ---
 
 ## Phase 3 — Reference Implementation (wp-v0.2 path)
+
 > AGPL-3.0 | Rust | transparency log + Arweave + OpenTimestamps + state-derivation per wp-v0.2 §10.2.
 >
 > NOTE: The original Phase 3 (Substrate parachain pallets) is preserved in full at the end of this document under "Phase 3-ALT — Alternative Implementation: Substrate Parachain (wp-v0.1)". That track is deferred to v1.0+ as one valid alternative path per wp-v0.2 §10.4.
 
 ### `apodokimos-log` — Transparency Log Client
 
-- [ ] RI-01 — Survey transparency log implementations (Trillian, Sigstore Rekor, custom RFC 6962 implementation); pin a choice with documented rationale in `docs/log-impl-decision.md`
-- [ ] RI-02 — Pin `apodokimos-log` Cargo.toml dependencies for chosen log (latest stable)
-- [ ] RI-03 — Implement `LogClient::submit(entry: SignedEntry) -> Result<InclusionProof>`
-- [ ] RI-04 — Implement `LogClient::verify_inclusion(entry, proof, sth) -> bool`
-- [ ] RI-05 — Implement `LogClient::verify_consistency(old_sth, new_sth) -> bool`
-- [ ] RI-06 — Implement witness co-signature verification: `verify_witness_signatures(sth, witnesses) -> bool`
-- [ ] RI-07 — Write integration tests against a local log instance
-- [ ] RI-08 — Document the genesis witness set in `governance/witnesses.toml`
+- [x] RI-01 — Survey transparency log implementations (Trillian, Sigstore Rekor, custom RFC 6962 implementation); pin a choice with documented rationale in `docs/log-impl-decision.md`
+- [x] RI-02 — Pin `apodokimos-log` Cargo.toml dependencies for chosen log (latest stable)
+- [x] RI-03 — Implement `LogClient::submit(entry: SignedEntry) -> Result<InclusionProof>`
+- [x] RI-04 — Implement `LogClient::verify_inclusion(entry, proof, sth) -> bool`
+- [x] RI-05 — Implement `LogClient::verify_consistency(old_sth, new_sth) -> bool`
+- [x] RI-06 — Implement witness co-signature verification: `verify_witness_signatures(sth, witnesses) -> bool`
+- [x] RI-07 — Write integration tests against a local log instance
+- [x] RI-08 — Document the genesis witness set in `governance/witnesses.toml`
 
 ### `apodokimos-anchor` — OpenTimestamps Integration
 
@@ -205,6 +210,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 ---
 
 ## Phase 4 — `apodokimos-arweave`
+
 > AGPL-3.0 | Rust
 
 - [ ] A-01 — Add `arweave-rs` or `bundlr-sdk` dependency (evaluate: latest stable)
@@ -226,20 +232,21 @@ SemVer milestones marked as `### vX.Y.Z`.
 ---
 
 ## Phase 5 — `apodokimos-indexer`
+
 > AGPL-3.0 | Rust
 >
 > NOTE: Indexer scope narrowed in wp-v0.2. Graph reconstruction and W scoring moved to `apodokimos-state`. The indexer's residual role is oracle polling + snapshot publication.
 
-- [x] I-01 — Implement Substrate event subscriber via `subxt` *(deferred with Phase 3-ALT; superseded by I-11 transparency-log subscriber)*
-- [x] I-02 — Implement `GraphBuilder`: reconstruct ECG from `ClaimRegistered` + `AttestationRecorded` events *(superseded by `apodokimos-state` per RI-15)*
-- [x] I-03 — Implement DAG integrity check: detect and reject cycles *(superseded by RI-16 in `apodokimos-state`)*
-- [x] I-04 — Implement `Scorer::compute_all()` — batch W(claim) for all claims in graph *(superseded by RI-19 in `apodokimos-state`)*
+- [x] I-01 — Implement Substrate event subscriber via `subxt` _(deferred with Phase 3-ALT; superseded by I-11 transparency-log subscriber)_
+- [x] I-02 — Implement `GraphBuilder`: reconstruct ECG from `ClaimRegistered` + `AttestationRecorded` events _(superseded by `apodokimos-state` per RI-15)_
+- [x] I-03 — Implement DAG integrity check: detect and reject cycles _(superseded by RI-16 in `apodokimos-state`)_
+- [x] I-04 — Implement `Scorer::compute_all()` — batch W(claim) for all claims in graph _(superseded by RI-19 in `apodokimos-state`)_
 - [ ] I-05 — Implement `OracleConnector::clinicaltrials(nct_id) -> OFactorScore`
 - [ ] I-06 — Implement `OracleConnector::prospero(prospero_id) -> OFactorScore`
-- [ ] I-07 — Implement `MerkleAnchor::snapshot(scores) -> MerkleRoot` + on-chain submission *(reframed: snapshots are now published into the transparency log; see I-13)*
+- [ ] I-07 — Implement `MerkleAnchor::snapshot(scores) -> MerkleRoot` + on-chain submission _(reframed: snapshots are now published into the transparency log; see I-13)_
 - [ ] I-08 — Implement `ScoreServer` — HTTP API for score queries with Merkle proof responses
-- [ ] I-09 — Write indexer integration tests against local dev chain *(rescope: against local transparency log instance + state-derivation operator; see I-14)*
-- [ ] I-10 — Benchmark: target <5s score recomputation for 10k claims *(this benchmark belongs to `apodokimos-state` now; tracked under RI-23)*
+- [ ] I-09 — Write indexer integration tests against local dev chain _(rescope: against local transparency log instance + state-derivation operator; see I-14)_
+- [ ] I-10 — Benchmark: target <5s score recomputation for 10k claims _(this benchmark belongs to `apodokimos-state` now; tracked under RI-23)_
 
 ### v0.2 additions
 
@@ -251,11 +258,12 @@ SemVer milestones marked as `### vX.Y.Z`.
 ---
 
 ## Phase 6 — `apodokimos-sdk` + `sdk-ts`
+
 > Apache-2.0
 
 ### Rust SDK
 
-- [ ] S-01 — Implement `ApodokimosClient::new(rpc_endpoint, arweave_gateway)` *(rephrase for v0.2: `new(log_endpoint, arweave_gateway, state_operator_endpoint)`)*
+- [ ] S-01 — Implement `ApodokimosClient::new(rpc_endpoint, arweave_gateway)` _(rephrase for v0.2: `new(log_endpoint, arweave_gateway, state_operator_endpoint)`)_
 - [ ] S-02 — Implement `submit_claim(claim, wallet) -> ClaimId` — uploads to Arweave, submits to log
 - [ ] S-03 — Implement `attest(claim_id, verdict, evidence_tx, signer) -> AttestationId`
 - [ ] S-04 — Implement `get_score(claim_id) -> ClaimWeight` with Merkle proof verification (via state-derivation operator)
@@ -279,6 +287,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 ---
 
 ## Phase 7 — `apodokimos-cli`
+
 > AGPL-3.0 | Rust | `clap` v4
 
 - [ ] CL-01 — Implement `apodokimos claim submit --file <claim.json> --wallet <key>`
@@ -308,8 +317,8 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [ ] B-03 — Register contradicting claim: known failed replication of same trial
 - [ ] B-04 — Demonstrate penalty propagation: retract base claim, observe score cascade
 - [ ] B-05 — Register O factor: link to ClinicalTrials.gov NCT for same trial
-- [x] B-06 — Whitepaper anchored on Arweave + DOI on Zenodo (10.5281/zenodo.19583091) — completed at Phase 1 *(wp-v0.1)*
-- [ ] B-07 — Register whitepaper as first ECG claim on testnet — *re-pointed to wp-v0.2; tracked under V-08*
+- [x] B-06 — Whitepaper anchored on Arweave + DOI on Zenodo (10.5281/zenodo.19583091) — completed at Phase 1 _(wp-v0.1)_
+- [ ] B-07 — Register whitepaper as first ECG claim on testnet — _re-pointed to wp-v0.2; tracked under V-08_
 
 ### v0.2 additions
 
@@ -323,8 +332,8 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ## Phase 9 — Public Testnet & Audit
 
-- [ ] T-01 — Deploy Apodokimos testnet — *under wp-v0.2: deploy transparency log instance + state-derivation operators + Arweave gateway + OTS anchoring; ARCHITECTURE.md per RI-01–RI-24*
-- [ ] T-02 — Commission external security audit *(scope updated for v0.2: transparency log integrity, state-derivation determinism, multi-sig governance correctness, Arweave tag binding integrity)*
+- [ ] T-01 — Deploy Apodokimos testnet — _under wp-v0.2: deploy transparency log instance + state-derivation operators + Arweave gateway + OTS anchoring; ARCHITECTURE.md per RI-01–RI-24_
+- [ ] T-02 — Commission external security audit _(scope updated for v0.2: transparency log integrity, state-derivation determinism, multi-sig governance correctness, Arweave tag binding integrity)_
 - [ ] T-03 — Commission formal verification of SBT non-transferability constraint — verify by absence of `transfer` operation in `apodokimos-state` per R7
 - [ ] T-04 — Publish audit report as Apodokimos claim (self-referential)
 - [ ] T-05 — Bug bounty program: defined scope, reward in governance SBTs not tokens
@@ -333,6 +342,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 ---
 
 ## Phase 3-ALT — Alternative Implementation: Substrate Parachain (wp-v0.1)
+
 > Preserved in full as historical record and as the primary alternative implementation track per wp-v0.2 §10.4.
 > Status: deferred. May be revisited at v1.0 if scale or feature requirements justify migration. Until then, this track is a valid alternative path that is not currently being executed.
 
@@ -375,7 +385,7 @@ SemVer milestones marked as `### vX.Y.Z`.
 ### `pallet-governance` — `v0.2.0`
 
 - [ ] CH-25 — Define `Proposal` types: `ParameterChange | FieldSchemaAdd | OracleWhitelistUpdate`
-- [ ] CH-26 — Implement quadratic SBT voting: `vote_weight = sqrt(field_sbt_score)` *(field-specific); cross-field uses `sqrt(mean_nonzero(field_scores))` per wp-v0.2 §7.1 correction*
+- [ ] CH-26 — Implement quadratic SBT voting: `vote_weight = sqrt(field_sbt_score)` _(field-specific); cross-field uses `sqrt(mean_nonzero(field_scores))` per wp-v0.2 §7.1 correction_
 - [ ] CH-27 — Implement proposal lifecycle: `Proposed → Voting → Passed | Rejected → Enacted`
 - [ ] CH-28 — Implement quorum threshold as governable parameter
 - [ ] CH-29 — Write governance integration tests: proposal, vote, enactment
@@ -385,17 +395,17 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ## SemVer Milestones Summary
 
-*(Restructured for wp-v0.2; v0.1.0 below targets the new reference implementation, not the Substrate parachain.)*
+_(Restructured for wp-v0.2; v0.1.0 below targets the new reference implementation, not the Substrate parachain.)_
 
-| Version | Deliverable |
-|---|---|
+| Version  | Deliverable                                                                                                                                                                       |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `v0.1.0` | `apodokimos-core` math correction (wp-v0.2 W formula) + reference-implementation skeleton (`apodokimos-log`, `apodokimos-anchor`, `apodokimos-state` stubs with happy-path tests) |
-| `v0.2.0` | Reference implementation functional: transparency log integration, OpenTimestamps anchoring, state derivation with §5 cascade and R13 spec-version binding, multi-sig governance |
-| `v0.3.0` | `apodokimos-arweave` integrated with `Spec-Version-DOI` tags + CLI published |
-| `v0.4.0` | SDK (Rust + TypeScript) published with multi-operator state queries |
-| `v0.5.0` | Clinical medicine pilot: 50-claim Cochrane bootstrap registered with `spec_version_doi = 10.5281/zenodo.19763292`; 8–15 participants per wp-v0.2 §11.4 |
-| `v0.9.0` | Public testnet live + external audit complete (transparency-log integrity, state determinism, multi-sig governance correctness) |
-| `v1.0.0` | Mainnet — implementation choice locked based on v0.2 demonstration; governance live; protocol owned by no one |
+| `v0.2.0` | Reference implementation functional: transparency log integration, OpenTimestamps anchoring, state derivation with §5 cascade and R13 spec-version binding, multi-sig governance  |
+| `v0.3.0` | `apodokimos-arweave` integrated with `Spec-Version-DOI` tags + CLI published                                                                                                      |
+| `v0.4.0` | SDK (Rust + TypeScript) published with multi-operator state queries                                                                                                               |
+| `v0.5.0` | Clinical medicine pilot: 50-claim Cochrane bootstrap registered with `spec_version_doi = 10.5281/zenodo.19763292`; 8–15 participants per wp-v0.2 §11.4                            |
+| `v0.9.0` | Public testnet live + external audit complete (transparency-log integrity, state determinism, multi-sig governance correctness)                                                   |
+| `v1.0.0` | Mainnet — implementation choice locked based on v0.2 demonstration; governance live; protocol owned by no one                                                                     |
 
 ---
 
