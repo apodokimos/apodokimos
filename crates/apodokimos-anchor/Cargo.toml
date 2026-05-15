@@ -1,0 +1,36 @@
+[package]
+name = "apodokimos-anchor"
+version = "0.1.0"
+edition = "2024"
+authors = ["Apodokimos Contributors"]
+license = "AGPL-3.0-only"
+repository = "https://github.com/apodokimos/apodokimos"
+description = "OpenTimestamps anchoring integration for Apodokimos"
+rust-version = "1.85"
+
+[dependencies]
+# OpenTimestamps library (research latest stable)
+opentimestamps = { version = "0.2", default-features = false }
+# SHA-256 for STH hashing
+sha2 = { workspace = true }
+# Async runtime for driver
+tokio = { workspace = true, default-features = false, features = ["rt-multi-thread", "macros", "time", "sync"] }
+# JSON serialization for proofs
+serde = { workspace = true, features = ["derive", "alloc"] }
+serde_json = { workspace = true, features = ["alloc"] }
+# Hex encoding for proof bytes
+hex = { workspace = true }
+# Core types
+apodokimos-core = { path = "../apodokimos-core", version = "0.3.0" }
+# Log types (SignedTreeHead)
+apodokimos-log = { path = "../apodokimos-log", version = "0.1.0" }
+
+[features]
+default = ["std"]
+std = [
+    "serde/std",
+    "serde_json/std",
+    "sha2/std",
+
+    "apodokimos-core/std",
+]

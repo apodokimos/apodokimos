@@ -224,13 +224,13 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 ### `apodokimos-anchor` — OpenTimestamps Integration
 
-- [ ] RI-09 — Create `apodokimos-anchor` crate and add dependencies
-  - [ ] RI-09a — Init `crates/apodokimos-anchor/Cargo.toml` with workspace members
-  - [ ] RI-09b — Add `opentimestamps-rs` dependency (or equivalent; research latest stable)
-  - [ ] RI-09c — Add `sha2` for STH hashing
-  - [ ] RI-09d — Add `tokio` for async anchoring driver
-  - [ ] RI-09e — Add `serde_json` for proof serialization
-  - [ ] RI-09f — Test build with `cargo build --release`
+- [x] RI-09 — Create `apodokimos-anchor` crate and add dependencies
+  - [x] RI-09a — Init `crates/apodokimos-anchor/Cargo.toml` with workspace members
+  - [x] RI-09b — Add `opentimestamps-rs` dependency (or equivalent; research latest stable)
+  - [x] RI-09c — Add `sha2` for STH hashing
+  - [x] RI-09d — Add `tokio` for async anchoring driver
+  - [x] RI-09e — Add `serde_json` for proof serialization
+  - [x] RI-09f — Test build with `cargo build --release`
 - [ ] RI-10 — Implement `Anchor::batch(sths: &[SignedTreeHead]) -> Result<OtsProof>`
   - [ ] RI-10a — Define `OtsProof` struct: timestamp, calendar_url, commitment, serialized OTS proof bytes
   - [ ] RI-10b — Implement canonical hashing of STH: sha2-256(sth.root || sth.tree_size)

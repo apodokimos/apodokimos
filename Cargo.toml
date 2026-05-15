@@ -5,6 +5,7 @@ members = [
     # "crates/apodokimos-chain",     # TODO: Phase 3
     # "crates/apodokimos-arweave",   # TODO: Phase 4
     # "crates/apodokimos-indexer",   # TODO: Phase 5
+    "crates/apodokimos-anchor",
     # "crates/apodokimos-sdk",       # TODO: Phase 6
     # "crates/apodokimos-cli",       # TODO: Phase 7
 ]
@@ -34,7 +35,7 @@ sp-runtime = { version = "34.0.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
 
 # Async / networking
-tokio = { version = "1.35", default-features = false }
+tokio = { version = "1.35", default-features = false, features = ["rt", "macros", "time", "sync", "rt-multi-thread", "fs"] }
 reqwest = { version = "0.11", default-features = false }
 
 # Crypto / transparency log
