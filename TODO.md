@@ -169,43 +169,241 @@ SemVer milestones marked as `### vX.Y.Z`.
 ### `apodokimos-log` — Transparency Log Client
 
 - [x] RI-01 — Survey transparency log implementations (Trillian, Sigstore Rekor, custom RFC 6962 implementation); pin a choice with documented rationale in `docs/log-impl-decision.md`
+  - [x] RI-01a — Research Trillian: architecture, production deployments, Rust bindings availability
+  - [x] RI-01b — Research Sigstore Rekor: transparency log design, proof verification, independent-operator model
+  - [x] RI-01c — Research custom RFC 6962 implementation: baseline Rust crate availability, audit history
+  - [x] RI-01d — Document decision rationale: chosen implementation, trade-offs (operator burden, proof verification complexity, integration surface)
+  - [x] RI-01e — Write decision document to `docs/log-impl-decision.md`
 - [x] RI-02 — Pin `apodokimos-log` Cargo.toml dependencies for chosen log (latest stable)
+  - [x] RI-02a — Pin merkle-tree hash library (sha2 vs sha3 decision documented)
+  - [x] RI-02b — Pin ed25519 signature library for witness verification
+  - [x] RI-02c — Test build with pinned deps, ensure no feature-flag conflicts
 - [x] RI-03 — Implement `LogClient::submit(entry: SignedEntry) -> Result<InclusionProof>`
+  - [x] RI-03a — Define `SignedEntry` struct: entry data + signature + public key
+  - [x] RI-03b — Implement canonical JSON serialization for entry (hash stability)
+  - [x] RI-03c — Implement HTTP POST to log server with error handling (retry logic, timeout)
+  - [x] RI-03d — Parse `InclusionProof` response: leaf index, merkle path, tree size
+  - [x] RI-03e — Unit test: serialize entry deterministically across multiple invocations
+  - [x] RI-03f — Integration test: submit 5 entries sequentially, verify all get distinct inclusion proofs
 - [x] RI-04 — Implement `LogClient::verify_inclusion(entry, proof, sth) -> bool`
+  - [x] RI-04a — Implement merkle path traversal: compute leaf hash, apply proof path nodes, compare root
+  - [x] RI-04b — Implement tree size consistency check: leaf index < tree size
+  - [x] RI-04c — Verify root matches STH's root field
+  - [x] RI-04d — Property test: verify_inclusion is transitively closed (if entry1 in old_proof and path from old to new, then entry1 in new)
+  - [x] RI-04e — Rejection test: tampered entry fails verification, modified proof path fails, out-of-bounds index fails
+  - [x] RI-04f — Edge case tests: leaf index = 0, leaf index = tree_size-1, proof path empty (single-leaf tree)
 - [x] RI-05 — Implement `LogClient::verify_consistency(old_sth, new_sth) -> bool`
+  - [x] RI-05a — Implement RFC 6962 consistency proof verification algorithm
+  - [x] RI-05b — Check new_tree_size >= old_tree_size (monotonicity)
+  - [x] RI-05c — Check old_root matches old_sth (reject if provided old_sth is stale)
+  - [x] RI-05d — Compute consistency proof path and verify against new root
+  - [x] RI-05e — Detect tree rewrite: if old_sth.root appears in the middle of new tree (invalid proof), flag it
+  - [x] RI-05f — Test: consistency proofs between tree sizes 1→5, 5→10, 10→10 (same tree)
+  - [x] RI-05g — Test: reject consistency proof with tampered path node
 - [x] RI-06 — Implement witness co-signature verification: `verify_witness_signatures(sth, witnesses) -> bool`
+  - [x] RI-06a — Define `Witness` struct: witness_id, public_key, signature over (sth.root || sth.tree_size)
+  - [x] RI-06b — Implement signature verification: ed25519.verify(pub_key, message, sig)
+  - [x] RI-06c — Implement k-of-n threshold check: at least k of n witnesses must have valid signatures
+  - [x] RI-06d — Load genesis witness set from `governance/witnesses.toml`
+  - [x] RI-06e — Test: 3-of-5 witness set, verify with exactly 3 valid sigs passes, with 2 valid sigs fails
+  - [x] RI-06f — Test: witness key mismatch is detected (pub_key in witness ≠ key in sth.witness_signatures)
+  - [x] RI-06g — Test: STH reordering (changing tree_size then root) invalidates all witness signatures
 - [x] RI-07 — Write integration tests against a local log instance
+  - [x] RI-07a — Set up local test log server (in-memory merkle tree, TCP listener on 0.0.0.0:8000)
+  - [x] RI-07b — Test: submit → get inclusion proof → verify inclusion against STH
+  - [x] RI-07c — Test: submit multiple entries → verify consistency between consecutive STHs
+  - [x] RI-07d — Test: witness co-signing on STH after k submissions
+  - [x] RI-07e — Test: concurrent submissions (5 threads, 10 entries each) produce correct tree
+  - [x] RI-07f — Test: split-view attack detection (witness set disagrees on sth.root for same tree_size) — document as limitation
+  - [x] RI-07g — Cleanup: local test server spins down at test end (no zombie processes)
 - [x] RI-08 — Document the genesis witness set in `governance/witnesses.toml`
+  - [x] RI-08a — Define TOML schema: `[[witness]]` with `id`, `public_key` (hex), `endpoint` (optional, for multi-operator setup)
+  - [x] RI-08b — Document the k-of-n threshold (e.g., 3-of-5)
+  - [x] RI-08c — Create genesis witness set: 3–5 initial witnesses (placeholder DIDs, real ed25519 public keys)
+  - [x] RI-08d — Write `docs/witnesses.md`: role of witnesses, how to join, signature duties, timelock semantics
 
 ### `apodokimos-anchor` — OpenTimestamps Integration
 
-- [ ] RI-09 — Add `opentimestamps` Rust crate dependency
+- [ ] RI-09 — Create `apodokimos-anchor` crate and add dependencies
+  - [ ] RI-09a — Init `crates/apodokimos-anchor/Cargo.toml` with workspace members
+  - [ ] RI-09b — Add `opentimestamps-rs` dependency (or equivalent; research latest stable)
+  - [ ] RI-09c — Add `sha2` for STH hashing
+  - [ ] RI-09d — Add `tokio` for async anchoring driver
+  - [ ] RI-09e — Add `serde_json` for proof serialization
+  - [ ] RI-09f — Test build with `cargo build --release`
 - [ ] RI-10 — Implement `Anchor::batch(sths: &[SignedTreeHead]) -> Result<OtsProof>`
+  - [ ] RI-10a — Define `OtsProof` struct: timestamp, calendar_url, commitment, serialized OTS proof bytes
+  - [ ] RI-10b — Implement canonical hashing of STH: sha2-256(sth.root || sth.tree_size)
+  - [ ] RI-10c — Implement batch commitment: merkle-hash multiple STH hashes into a single commitment
+  - [ ] RI-10d — Submit commitment to OTS calendar server (HTTP POST to calendar endpoint)
+  - [ ] RI-10e — Parse OTS response: extract timestamp proof bytes
+  - [ ] RI-10f — Serialize proof to JSON and return
+  - [ ] RI-10g — Error handling: network timeout, calendar unavailable, invalid response format
+  - [ ] RI-10h — Unit test: batch 3 STHs, verify proof contains all 3 commitments
+  - [ ] RI-10i — Test: large batch (100 STHs) completes within 10s
 - [ ] RI-11 — Implement `Anchor::verify(proof: &OtsProof, bitcoin_node) -> Result<BlockHeight>`
+  - [ ] RI-11a — Parse OTS proof from JSON bytes
+  - [ ] RI-11b — Extract timestamp and Bitcoin block height from OTS response
+  - [ ] RI-11c — Query Bitcoin node (via RPC or light client) for block at extracted height
+  - [ ] RI-11d — Verify block contains the timestamp commitment (via Merkle tree in coinbase or OP_RETURN)
+  - [ ] RI-11e — Return BlockHeight on success; error on mismatch
+  - [ ] RI-11f — Robustness: handle reorg (if block no longer in chain), stale proof (block too old)
+  - [ ] RI-11g — Unit test: verify proof against mock Bitcoin data
+  - [ ] RI-11h — Integration test: verify real OTS anchor against testnet Bitcoin node
+  - [ ] RI-11i — Document: which OTS calendar servers are trusted (default calendars list)
 - [ ] RI-12 — Implement scheduled anchoring driver (configurable cadence, default daily)
+  - [ ] RI-12a — Define `AnchorScheduler` struct: anchor client, tick interval, STH queue
+  - [ ] RI-12b — Implement async job: wake every N seconds, batch pending STHs, submit to calendar
+  - [ ] RI-12c — Persist pending STHs in a local queue (JSON lines file or in-memory with periodic flush)
+  - [ ] RI-12d — Retry logic: if calendar fails, re-queue with exponential backoff (max 3 retries)
+  - [ ] RI-12e — Metrics: emit anchoring latency, success/failure count, queue depth
+  - [ ] RI-12f — Graceful shutdown: flush pending STHs and close connections on termination signal
+  - [ ] RI-12g — Configuration: read anchor interval from config file or env var (default 24h)
+  - [ ] RI-12h — Integration test: start scheduler, submit STHs, verify they anchor within 1 minute (accelerated for tests)
+  - [ ] RI-12i — Test: scheduler handles network interruption (calendar down for 5 minutes, recovers)
 - [ ] RI-13 — Write integration tests using OTS calendar testnet
+  - [ ] RI-13a — Set up test with OTS calendar testnet endpoint (not mainnet)
+  - [ ] RI-13b — Submit proof, wait for confirmation (may take 10+ minutes in testnet)
+  - [ ] RI-13c — Verify anchor against Bitcoin testnet
+  - [ ] RI-13d — Test: batch 5 STHs, verify all 5 in single calendar response
+  - [ ] RI-13e — Test: timeout handling if calendar is slow
+  - [ ] RI-13f — Document test setup (testnet calendar endpoints, Bitcoin testnet node requirements)
 
 ### `apodokimos-state` — Deterministic State Derivation
 
 - [ ] RI-14 — Init `apodokimos-state` crate with workspace dependencies on `apodokimos-core` and `apodokimos-log`
+  - [ ] RI-14a — Create `crates/apodokimos-state/Cargo.toml` with dependency on apodokimos-core v0.3.0+
+  - [ ] RI-14b — Add apodokimos-log as workspace dependency
+  - [ ] RI-14c — Add serde, serde_json, blake3, sha2 for serialization and hashing
+  - [ ] RI-14d — Test build: `cargo build -p apodokimos-state`
 - [ ] RI-15 — Implement `Derivation::state_at(log_state) -> ProtocolState` — pure function reading log entries up to STH
+  - [ ] RI-15a — Define `ProtocolState` struct: `{ claims: Map<ClaimId, ClaimState>, attestations: Map<(ClaimId, AttesterId), Attestation>, sbt_records: Map<DID, ReputationRecord>, merkle_root: [u8; 32] }`
+  - [ ] RI-15b — Define `ClaimState` struct: `{ claim_hash, spec_version_doi, weight, retraction_discount, dependent_claims: Set<ClaimId> }`
+  - [ ] RI-15c — Implement entry parsing: deserialize log entry bytes as Claim or Attestation or GovernanceAction
+  - [ ] RI-15d — Implement claim registration: validate spec_version_doi against allowlist, insert into claims map, initialize weight
+  - [ ] RI-15e — Implement attestation recording: DAG acyclicity check (RI-16), reputation gate (RI-17), SBT update
+  - [ ] RI-15f — Implement state snapshot: compute Merkle root over deterministically sorted (claims, attestations, sbt) (RI-22)
+  - [ ] RI-15g — Document: "state derivation is a pure function of log; any two operators with same log produce identical ProtocolState"
+  - [ ] RI-15h — Unit test: derive state from 5 sequential claims → verify state has 5 claims with zero weight (unattested)
+  - [ ] RI-15i — Unit test: replay log forward and backward → forward produces expected state
 - [ ] RI-16 — Implement DAG acyclicity enforcement at write-time (R5)
+  - [ ] RI-16a — Build dependency graph: claims → attestations → dependent claims
+  - [ ] RI-16b — Implement cycle detection: DFS from new attestation's target, reject if cycle detected
+  - [ ] RI-16c — Test: three claims forming a cycle, verify third attestation is rejected
+  - [ ] RI-16d — Test: linear chain of claims (A → B → C → D) is acyclic, all attestations accepted
+  - [ ] RI-16e — Test: large DAG (100 claims, 500 edges) cycle detection completes in <1s
 - [ ] RI-17 — Implement reputation-gated attestation acceptance (R6)
+  - [ ] RI-17a — Read SBT requirement from field schema: `min_sbt_score: u64` per field
+  - [ ] RI-17b — Look up attester's SBT score for the claim's field
+  - [ ] RI-17c — Reject attestation if attester.sbt_score < min_sbt_score
+  - [ ] RI-17d — Test: attester with 0 SBT cannot attest → rejected
+  - [ ] RI-17e — Test: attester with 100 SBT, field min=50 → attestation accepted
+  - [ ] RI-17f — Test: cross-field: attester with high SBT in oncology, low in cardiology, cannot attest cardiology claims
 - [ ] RI-18 — Implement SBT lifecycle without exposing any transfer operation (R7) — explicit unit test asserts no `transfer` symbol exists in the public API
+  - [ ] RI-18a — Define `SBTRecord` struct: `{ holder_did, field_id, current_score, attestation_count, survival_count }`
+  - [ ] RI-18b — Implement mint: on first accepted attestation, create SBTRecord with score=1
+  - [ ] RI-18c — Implement increment: on claim survival event (time threshold or replication), increment score
+  - [ ] RI-18d — Implement penalty: on retraction, apply δ(c) discount to all dependent claims, decrement SBT score proportionally
+  - [ ] RI-18e — CRITICAL: Ensure NO `transfer` function in public API (compile-time check: `grep -E 'pub.*fn transfer' src/*.rs` returns empty)
+  - [ ] RI-18f — Unit test: mint SBT, verify holder has score=1
+  - [ ] RI-18g — Unit test: increment score 5 times, verify score=6
+  - [ ] RI-18h — Unit test: apply penalty, verify score decrements but never reaches 0 (per wp-v0.2 §7.2 non-zero baseline)
+  - [ ] RI-18i — API audit: review all public methods, confirm none enable SBT transfer
 - [ ] RI-19 — Implement W(c, t) computation calling `apodokimos-core` per-claim with that claim's `spec_version_doi` (R13)
+  - [ ] RI-19a — For each claim in state: read spec_version_doi field
+  - [ ] RI-19b — Load the corresponding spec version's WeightFunction from apodokimos-core (compile-time: always wp-v0.2 for now)
+  - [ ] RI-19c — Call WeightFunction::compute(claim, attestations, graph) → ClaimWeight
+  - [ ] RI-19d — Store weight in ClaimState
+  - [ ] RI-19e — Document: "claims registered under wp-v0.2 are scored under wp-v0.2 rules, even if wp-v0.5 ships" (spec-version coherence)
+  - [ ] RI-19f — Test: weight increases as attestations accumulate
+  - [ ] RI-19g — Test: weight for unattested claim > 0 (non-zero baseline)
+  - [ ] RI-19h — Test: basic-science claim (O=0) has W > 0 (regression test against wp-v0.1 bug B1, per C-33)
 - [ ] RI-20 — Implement δ retraction cascade per wp-v0.2 §5.2
+  - [ ] RI-20a — On claim retraction: compute δ(c) from wp-v0.2 §5.2 formula (depends on pre-retraction weight and field)
+  - [ ] RI-20b — Store δ(c) in ClaimState as retraction_discount
+  - [ ] RI-20c — Apply δ(c) to all dependent claims: W_new = W_old × δ(c)
+  - [ ] RI-20d — Recursively cascade to second-order dependents, etc. (until W change < threshold or max depth)
+  - [ ] RI-20e — Update affected claims' SBT holders: penalty proportional to weight decrease
+  - [ ] RI-20f — Test: retract claim → immediate dependent has W reduced by δ
+  - [ ] RI-20g — Test: three-level dependency (A → B → C), retract A → C is cascaded
+  - [ ] RI-20h — Test: cascade threshold (per field) stops propagation if weight reduction < Θ_field
 - [ ] RI-21 — Implement multi-signature governance action handling per wp-v0.2 §7.5: validate k-of-n signatures, enforce timelock, apply parameter changes after timelock
+  - [ ] RI-21a — Define `GovernanceAction` enum: `ParameterChange | FieldSchemaAdd | OracleWhitelistUpdate | GovernanceSetRotation`
+  - [ ] RI-21b — Implement action parsing from log entry
+  - [ ] RI-21c — Verify k-of-n signatures: load genesis governance set, check ≥k valid ed25519 signatures
+  - [ ] RI-21d — Check timelock: action must be older than timelock_delay (default 7 days) before taking effect
+  - [ ] RI-21e — Apply parameter changes: update governance parameters (e.g., outcome_bonus_coefficient γ)
+  - [ ] RI-21f — Apply field schema changes: add new field to schema allowlist
+  - [ ] RI-21g — Apply oracle whitelist changes: add/remove oracle sources
+  - [ ] RI-21h — Test: 3-of-5 governance action with 3 valid signatures accepted, 2 rejected
+  - [ ] RI-21i — Test: timelock enforcement: fresh action is queued but not applied
+  - [ ] RI-21j — Test: rotation: governance set itself can be rotated via governance action (self-referential)
 - [ ] RI-22 — Implement state snapshot Merkle root computation
+  - [ ] RI-22a — Serialize claims in deterministic order (sorted by ClaimId)
+  - [ ] RI-22b — Serialize attestations in deterministic order (sorted by (ClaimId, AttesterId))
+  - [ ] RI-22c — Serialize SBT records in deterministic order (sorted by DID)
+  - [ ] RI-22d — Compute Merkle tree: leaf nodes are blake3-hashes of serialized entries, combine pairwise
+  - [ ] RI-22e — Root = merkle_root(all_claims || all_attestations || all_sbts)
+  - [ ] RI-22f — Store root in ProtocolState
+  - [ ] RI-22g — Unit test: same state produces same root across 100 invocations (determinism)
+  - [ ] RI-22h — Unit test: single claim change causes root change
+  - [ ] RI-22i — Unit test: reorder claims in input → root unchanged (ensures sort order, not input order, drives tree)
 - [ ] RI-23 — Write determinism test: two independent runs over same log produce byte-identical state Merkle roots
+  - [ ] RI-23a — Load test log with 20 claims and 30 attestations from fixture
+  - [ ] RI-23b — Derive state twice in same process: state1, state2
+  - [ ] RI-23c — Assert state1.merkle_root == state2.merkle_root (byte-identical)
+  - [ ] RI-23d — Spawn two independent processes running state derivation, compare merkle roots
+  - [ ] RI-23e — Regression: if roots differ, pretty-print diff of claims/attestations/sbt to debug
+  - [ ] RI-23f — Benchmark: derive state for 1000-claim log in <5s
 - [ ] RI-24 — Write multi-operator agreement test: state computed from independent log mirrors agrees
+  - [ ] RI-24a — Set up two log mirror instances with identical entries (via sync)
+  - [ ] RI-24b — Derive state from log mirror 1 → state1
+  - [ ] RI-24c — Derive state from log mirror 2 → state2
+  - [ ] RI-24d — Assert state1.merkle_root == state2.merkle_root
+  - [ ] RI-24e — Test: if one mirror lags (missing latest entries), states differ (expected)
+  - [ ] RI-24f — Document: "Multiple operators running this state-derivation code over the same log must agree on output; disagreement signals misbehavior"
 
 ### Governance
 
 - [ ] GV-01 — Define genesis governance set (`governance/genesis.toml`): DIDs, public keys, threshold k, timelock period
+  - [ ] GV-01a — Generate 5 ed25519 keypairs for genesis governors (placeholder DIDs: `did:apodokimos:gov-001` through `gov-005`)
+  - [ ] GV-01b — Create governance/genesis.toml: `threshold_k = 3`, `timelock_period_secs = 604800` (7 days)
+  - [ ] GV-01c — List all 5 public keys in TOML
+  - [ ] GV-01d — Document decision: why 3-of-5 threshold, why 7-day timelock
+  - [ ] GV-01e — Generate test keypair fixtures in `tests/governance_fixtures/` for integration tests
 - [ ] GV-02 — Implement `apodokimos-cli governance sign` — produce a signed governance action record
+  - [ ] GV-02a — Define CLI subcommand: `apodokimos governance sign --action <json-file> --key <private-key-hex>`
+  - [ ] GV-02b — Parse action JSON: `{ action_type, payload, nonce, timestamp }`
+  - [ ] GV-02c — Canonicalize action JSON (deterministic serialization)
+  - [ ] GV-02d — Sign with ed25519: `signature = sign(private_key, canonical_json)`
+  - [ ] GV-02e — Output signed action: `{ action, signature, signer_did }`
+  - [ ] GV-02f — Store signed actions in `governance/actions/` directory
+  - [ ] GV-02g — Test: sign same action with 3 different keys → 3 signatures in output
 - [ ] GV-03 — Implement `apodokimos-cli governance verify` — verify a k-of-n signed action against `governance/genesis.toml`
+  - [ ] GV-03a — Define CLI subcommand: `apodokimos governance verify --action <json-file>`
+  - [ ] GV-03b — Load genesis.toml, extract public keys and threshold k
+  - [ ] GV-03c — Parse signed action file: extract all signatures and signer DIDs
+  - [ ] GV-03d — For each signature: verify ed25519(pub_key, canonical_action_json, sig)
+  - [ ] GV-03e — Count valid signatures; output "VALID (3/5 required sigs)" or "INVALID (only 2/5)"
+  - [ ] GV-03f — Check timelock: if action is fresh (<7 days old), warn "Action will take effect in X days"
+  - [ ] GV-03g — Test: verify action with 3 valid sigs → VALID
+  - [ ] GV-03h — Test: verify action with 2 valid sigs → INVALID
+  - [ ] GV-03i — Test: tampered action fails verification
 - [ ] GV-04 — Document the governance action submission flow in `docs/governance-flow.md`
+  - [ ] GV-04a — Write workflow: "Create action JSON → distribute to 3+ governors → each runs `governance sign` → collect sigs → merge into one file → submit to log"
+  - [ ] GV-04b — Document action types: `ParameterChange` (e.g., update γ), `FieldSchemaAdd` (e.g., add new field), `OracleWhitelistUpdate`, `GovernanceSetRotation`
+  - [ ] GV-04c — Explain timelock: "7-day cooldown before action takes effect; community can exit if they disagree"
+  - [ ] GV-04d — Show example: rotating governance set (5 governors → 7 governors)
+  - [ ] GV-04e — Security model: "Requires k-of-n signatures; no single governor can unilaterally change protocol"
 - [ ] GV-05 — Test: governance set rotation as a governance action (the protocol upgrades its own governance set through its existing governance, per wp-v0.2 §7.5)
+  - [ ] GV-05a — Start with 3-of-5 genesis set (5 governors)
+  - [ ] GV-05b — Create GovernanceSetRotation action: remove 1 governor, add 2 new ones (7 total)
+  - [ ] GV-05c — Have 3 current governors sign the rotation action
+  - [ ] GV-05d — Wait past timelock
+  - [ ] GV-05e — Apply action via state derivation (RI-21)
+  - [ ] GV-05f — Verify governance set is now 4-of-7 (or whatever new threshold)
+  - [ ] GV-05g — Create new action with old governors → should fail (no longer in set)
+  - [ ] GV-05h — Create new action with new governors → should work (now in set)
 
 ---
 
@@ -213,21 +411,85 @@ SemVer milestones marked as `### vX.Y.Z`.
 
 > AGPL-3.0 | Rust
 
-- [ ] A-01 — Add `arweave-rs` or `bundlr-sdk` dependency (evaluate: latest stable)
-- [ ] A-02 — Implement `ClaimUploader::upload(claim: &Claim, wallet: &ArweaveWallet) -> TxId`
+- [ ] A-01 — Create `apodokimos-arweave` crate and add dependencies
+  - [ ] A-01a — Init `crates/apodokimos-arweave/Cargo.toml` with workspace members
+  - [ ] A-01b — Research: evaluate `arweave-rs` vs `bundlr-sdk` vs custom Arweave HTTP client
+  - [ ] A-01c — Document decision in `docs/arweave-implementation-choice.md`
+  - [ ] A-01d — Add chosen dependency (latest stable)
+  - [ ] A-01e — Add serde, serde_json, blake3 for serialization
+  - [ ] A-01f — Test build: `cargo build -p apodokimos-arweave`
+- [ ] A-02 — Implement `ClaimUploader::upload(claim: &Claim, wallet: &ArweaveWallet) -> Result<TxId>`
+  - [ ] A-02a — Define `ClaimUploader` struct: holds Arweave client and wallet
+  - [ ] A-02b — Serialize claim to canonical JSON (from apodokimos-core)
+  - [ ] A-02c — Compute blake3 hash of canonical JSON
+  - [ ] A-02d — Build Arweave transaction with claim JSON as data
+  - [ ] A-02e — Sign transaction with wallet (AR token cost estimation)
+  - [ ] A-02f — Submit to Arweave network, wait for confirmation
+  - [ ] A-02g — Return TxId on success
+  - [ ] A-02h — Error handling: insufficient balance, network timeout, invalid wallet
+  - [ ] A-02i — Integration test: upload claim, wait for confirmation, fetch tx from Arweave
 - [ ] A-03 — Implement canonical Arweave tags per ARCHITECTURE.md spec
+  - [ ] A-03a — Define tag schema: `App-Name: "apodokimos"`, `App-Version: "0.2.0"`, `Content-Type: "application/json"`
+  - [ ] A-03b — Add tags: `Claim-Type` (enum: primary-claim, hypothesis, method, result, replication, null-result)
+  - [ ] A-03c — Add tags: `Field-Id` (e.g., "clinical-medicine-v0.1"), `Schema-Version` (field schema version)
+  - [ ] A-03d — Add tag: `Claim-Hash` (blake3 hex-encoded)
+  - [ ] A-03e — Add tag: `Spec-Version-DOI` (e.g., "10.5281/zenodo.19763292", required and immutable per wp-v0.2)
+  - [ ] A-03f — Document: each tag is set during upload, immutable after confirmation
+  - [ ] A-03g — Test: verify all tags are present in Arweave response
 - [ ] A-04 — Implement `ClaimFetcher::fetch(tx_id: &TxId) -> Result<Claim>`
+  - [ ] A-04a — Query Arweave for transaction data
+  - [ ] A-04b — Extract JSON data from transaction
+  - [ ] A-04c — Deserialize to Claim struct
+  - [ ] A-04d — Extract tags from transaction metadata
+  - [ ] A-04e — Return (Claim, Tags)
+  - [ ] A-04f — Error handling: tx not found, invalid JSON, deserialization error
+  - [ ] A-04g — Integration test: fetch claim uploaded by A-02
 - [ ] A-05 — Implement content hash verification on fetch: reject if hash mismatch
-- [ ] A-06 — Implement `AttestationUploader::upload(attestation: &Attestation) -> TxId`
+  - [ ] A-05a — After deserializing claim JSON, recompute blake3 hash
+  - [ ] A-05b — Compare with `Claim-Hash` tag from Arweave
+  - [ ] A-05c — Reject claim if hashes don't match; return error
+  - [ ] A-05d — Document: this is "rehash-on-fetch" verification per ARCHITECTURE.md
+  - [ ] A-05e — Test: fetch claim, modify cached JSON in mock, verify rejection
+- [ ] A-06 — Implement `AttestationUploader::upload(attestation: &Attestation) -> Result<TxId>`
+  - [ ] A-06a — Similar to A-02 but for attestations
+  - [ ] A-06b — Serialize attestation to JSON
+  - [ ] A-06c — Compute blake3, tag, sign, submit
+  - [ ] A-06d — Add tags: `Related-Claim-Id` (the claim being attested), `Attestation-Verdict` (enum)
+  - [ ] A-06e — Test: upload attestation, fetch back
 - [ ] A-07 — Write integration tests against Arweave testnet (arlocal)
+  - [ ] A-07a — Set up arlocal instance (in-memory Arweave for testing)
+  - [ ] A-07b — Test: upload claim to arlocal, fetch back, verify hash and tags
+  - [ ] A-07c — Test: upload attestation, link to claim
+  - [ ] A-07d — Test: batch upload 10 claims, verify all 10 can be fetched
+  - [ ] A-07e — Cleanup: stop arlocal at test end
 - [ ] A-08 — Write `fields/clinical-medicine-v0.1.json` CC0 schema to Arweave at deploy time
+  - [ ] A-08a — Read `fields/clinical-medicine-v0.1.json` from repo
+  - [ ] A-08b — Upload to Arweave with tags: `Content-Type: "application/json"`, `Field-Schema: "clinical-medicine"`, `Version: "0.1.0"`
+  - [ ] A-08c — Store resulting TxId in `docs/arweave-field-schemas.json` (registry)
+  - [ ] A-08d — Document: schema is immutable and permanent on Arweave; future versions use new TxIds
 
 ### v0.2 additions
 
 - [ ] A-09 — Add `Spec-Version-DOI` tag to Arweave upload schema per wp-v0.2 §9.2 — required and immutable
+  - [ ] A-09a — Require `Spec-Version-DOI` parameter in `ClaimUploader::upload()` signature
+  - [ ] A-09b — Add tag to transaction: `Spec-Version-DOI: "10.5281/zenodo.19763292"` (or relevant version)
+  - [ ] A-09c — Reject upload if DOI is missing or invalid format
+  - [ ] A-09d — Test: upload without Spec-Version-DOI → error; with valid DOI → success
 - [ ] A-10 — Implement `ClaimFetcher` validation: reject claims whose `Spec-Version-DOI` tag does not match a known whitepaper Version DOI (allowlist maintained by governance)
+  - [ ] A-10a — Load allowlist of known Spec-Version-DOI strings from `governance/known-versions.toml`
+  - [ ] A-10b — During fetch, extract `Spec-Version-DOI` tag
+  - [ ] A-10c — Reject claim if DOI not in allowlist
+  - [ ] A-10d — Document: allowlist is governance-controlled and can be updated via GV-04
+  - [ ] A-10e — Test: fetch claim with known DOI → success; with unknown DOI → error
 - [ ] A-11 — Update `App-Version` tag from `0.1.0` to `0.2.0` to reflect wp-v0.2 schema
-- [ ] A-12 — Test that fetching a v0.1 claim (with no `Spec-Version-DOI` tag) is handled per a documented backward-compatibility policy (probably: treat absent tag as v0.1, document in `docs/spec-version-handling.md`)
+  - [ ] A-11a — Change tag constant in code to `0.2.0`
+  - [ ] A-11b — Test: new uploads have `App-Version: 0.2.0`
+- [ ] A-12 — Test that fetching a v0.1 claim (with no `Spec-Version-DOI` tag) is handled per a documented backward-compatibility policy
+  - [ ] A-12a — Mock v0.1 claim (missing Spec-Version-DOI tag) in test
+  - [ ] A-12b — Define policy: "Treat absent tag as wp-v0.1 for backward compatibility; emit warning on fetch"
+  - [ ] A-12c — Implement policy in ClaimFetcher
+  - [ ] A-12d — Document in `docs/spec-version-handling.md`
+  - [ ] A-12e — Test: fetch v0.1 claim → success with warning
 
 ---
 
@@ -241,19 +503,92 @@ SemVer milestones marked as `### vX.Y.Z`.
 - [x] I-02 — Implement `GraphBuilder`: reconstruct ECG from `ClaimRegistered` + `AttestationRecorded` events _(superseded by `apodokimos-state` per RI-15)_
 - [x] I-03 — Implement DAG integrity check: detect and reject cycles _(superseded by RI-16 in `apodokimos-state`)_
 - [x] I-04 — Implement `Scorer::compute_all()` — batch W(claim) for all claims in graph _(superseded by RI-19 in `apodokimos-state`)_
-- [ ] I-05 — Implement `OracleConnector::clinicaltrials(nct_id) -> OFactorScore`
-- [ ] I-06 — Implement `OracleConnector::prospero(prospero_id) -> OFactorScore`
-- [ ] I-07 — Implement `MerkleAnchor::snapshot(scores) -> MerkleRoot` + on-chain submission _(reframed: snapshots are now published into the transparency log; see I-13)_
-- [ ] I-08 — Implement `ScoreServer` — HTTP API for score queries with Merkle proof responses
-- [ ] I-09 — Write indexer integration tests against local dev chain _(rescope: against local transparency log instance + state-derivation operator; see I-14)_
-- [ ] I-10 — Benchmark: target <5s score recomputation for 10k claims _(this benchmark belongs to `apodokimos-state` now; tracked under RI-23)_
 
-### v0.2 additions
+### Oracle Integration (w-v0.2)
 
-- [ ] I-11 — Implement transparency-log subscriber: subscribe to new log entries via the `apodokimos-log` client
-- [ ] I-12 — Publish oracle results into the log so they form part of the auditable history (per ARCHITECTURE.md state-derivation flow)
-- [ ] I-13 — Publish state snapshot Merkle roots into the log for efficient verification by lightweight clients
-- [ ] I-14 — Implement cross-operator reconciliation: detect divergence between independent indexers and flag as misbehavior signal
+- [ ] I-05 — Implement `OracleConnector::clinicaltrials(nct_id) -> Result<OracleResult>`
+  - [ ] I-05a — Init ClinicalTrials.gov API client (https://clinicaltrials.gov/api/query/)
+  - [ ] I-05b — Implement NCT ID query: fetch trial status, enrollment, outcome data
+  - [ ] I-05c — Compute O factor: determine if trial is completed, has results, if results match claim
+  - [ ] I-05d — Return OracleResult: { nct_id, trial_status, O_score ∈ [0, 1], timestamp }
+  - [ ] I-05e — Error handling: NCT not found (404), API timeout, malformed response
+  - [ ] I-05f — Caching: cache results for 24h to avoid duplicate queries
+  - [ ] I-05g — Unit test: fetch known NCT (NCT02718404), verify result structure
+  - [ ] I-05h — Integration test: fetch 5 different NCTs, verify O scores are in [0, 1]
+- [ ] I-06 — Implement `OracleConnector::prospero(prospero_id) -> Result<OracleResult>`
+  - [ ] I-06a — PROSPERO API client (https://www.crd.york.ac.uk/prospero/api/)
+  - [ ] I-06b — Query PROSPERO registry: fetch registration status, review status
+  - [ ] I-06c — Compute O factor: if review published and aligns with claim, O > 0
+  - [ ] I-06d — Return OracleResult: { prospero_id, review_status, O_score, timestamp }
+  - [ ] I-06e — Error handling: PROSPERO ID not found, API timeout
+  - [ ] I-06f — Caching: cache results for 7 days (reviews update less frequently)
+  - [ ] I-06g — Unit test: fetch known PROSPERO ID, verify result
+- [ ] I-07 — Implement additional oracle: OpenAlex DOI-to-policy linkage (wp-v0.2 §3.5 outcome linkage)
+  - [ ] I-07a — OpenAlex API client (https://openalex.org/api/)
+  - [ ] I-07b — Query DOI: fetch publication, find linked policy/legislation documents
+  - [ ] I-07c — Compute O factor: if policy is recent and cites the paper, O > 0
+  - [ ] I-07d — Return OracleResult: { doi, linked_policies: Vec<String>, O_score, timestamp }
+  - [ ] I-07e — Error handling: DOI not found, no linked policies
+  - [ ] I-07f — Unit test: fetch known DOI with policy linkage, verify result
+
+### Snapshot Publication & Reconciliation (v0.2)
+
+- [ ] I-08 — Implement transparency-log subscriber: subscribe to new log entries via the `apodokimos-log` client
+  - [ ] I-08a — Create `LogSubscriber` struct holding a log client
+  - [ ] I-08b — Implement polling loop: fetch latest STH every 10 seconds
+  - [ ] I-08c — On new STH: trigger state derivation (delegate to apodokimos-state)
+  - [ ] I-08d — Error handling: log unavailable, network timeout, invalid STH format
+  - [ ] I-08e — Unit test: mock log subscriber, verify STH polling interval
+- [ ] I-09 — Publish oracle results into the log so they form part of the auditable history (per ARCHITECTURE.md state-derivation flow)
+  - [ ] I-09a — Wrap OracleResult in a log entry type: `OracleObservation { claim_id, oracle_source, result_json, timestamp }`
+  - [ ] I-09b — Sign oracle observation with indexer's DID/key
+  - [ ] I-09c — Submit to transparency log via apodokimos-log client
+  - [ ] I-09d — Error handling: log submit failure, invalid signature
+  - [ ] I-09e — Retry logic: if submit fails, queue and retry up to 3 times
+  - [ ] I-09f — Integration test: publish oracle result, verify it appears in log
+- [ ] I-10 — Publish state snapshot Merkle roots into the log for efficient verification by lightweight clients
+  - [ ] I-10a — After state derivation completes (from apodokimos-state), get merkle root
+  - [ ] I-10b — Create log entry: `StateSnapshot { block_height, merkle_root, timestamp }`
+  - [ ] I-10c — Sign snapshot with indexer's DID/key
+  - [ ] I-10d — Submit to log
+  - [ ] I-10e — Store latest published snapshot in local state
+  - [ ] I-10f — Test: snapshot published once per state derivation cycle
+- [ ] I-11 — Implement cross-operator reconciliation: detect divergence between independent indexers and flag as misbehavior signal
+  - [ ] I-11a — Maintain list of known indexer endpoints (configured in `governance/indexers.toml`)
+  - [ ] I-11b — Periodically query other indexers' latest snapshot merkle root
+  - [ ] I-11c — Compare: if my snapshot != peer snapshot at same block, flag divergence
+  - [ ] I-11d — Emit alert/log message: "Indexer divergence detected with {peer}: my_root {my} vs their_root {their}"
+  - [ ] I-11e — Publish divergence record to log as evidence (per transparency principle)
+  - [ ] I-11f — Error handling: peer indexer down, timeout, invalid response
+  - [ ] I-11g — Unit test: mock two indexers with different snapshots, verify divergence detection
+  - [ ] I-11h — Integration test: run 2 indexers on same log, verify they agree (or divergence is detected and logged)
+
+### Indexer Lifecycle & Configuration
+
+- [ ] I-12 — Implement indexer startup and initialization
+  - [ ] I-12a — Load configuration: log endpoint, oracle API keys (ClinicalTrials.gov, PROSPERO, OpenAlex), state-derivation operator endpoints
+  - [ ] I-12b — Verify connectivity: test log client, test state-derivation operator
+  - [ ] I-12c — Initialize: load last known STH, last known state snapshot
+  - [ ] I-12d — Emit info log: "Indexer started, last STH: {sth_tree_size}"
+- [ ] I-13 — Implement graceful shutdown
+  - [ ] I-13a — On SIGTERM or stop signal: finish current log polling cycle
+  - [ ] I-13b — Flush any pending oracle results to log
+  - [ ] I-13c — Persist latest state to disk (for fast recovery)
+  - [ ] I-13d — Close log client connection gracefully
+  - [ ] I-13e — Emit info log: "Indexer shutdown complete"
+- [ ] I-14 — Write integration tests against local transparency log instance + state-derivation operator
+  - [ ] I-14a — Set up test log instance (in-memory or arlocal)
+  - [ ] I-14b — Set up test state-derivation operator (in-process)
+  - [ ] I-14c — Test: indexer starts, subscribes to log, triggers state derivation on new entry
+  - [ ] I-14d — Test: oracle polling queries ClinicalTrials.gov mock, result published to log
+  - [ ] I-14e — Test: snapshot merkle root published to log after state derivation
+  - [ ] I-14f — Test: two indexers on same log produce same snapshot roots (or divergence is logged)
+  - [ ] I-14g — Cleanup: stop both indexer instances and log server
+- [ ] I-15 — Benchmark and performance tuning
+  - [ ] I-15a — Measure: time to poll log (should be <1s for typical log size)
+  - [ ] I-15b — Measure: time to query oracle (ClinicalTrials.gov ~5s, PROSPERO ~5s, OpenAlex ~3s)
+  - [ ] I-15c — Measure: end-to-end latency from claim submission to snapshot published (target <60s)
+  - [ ] I-15d — Document performance targets in `docs/indexer-performance.md`
 
 ---
 
