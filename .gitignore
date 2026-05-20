@@ -100,3 +100,7 @@ target/doc/
 .skill/
 .cursor/rules/skill-context.md
 .windsurf/rules/skill-context.md
+
+# Agents and memory
+.claude/
+.harness-mem/

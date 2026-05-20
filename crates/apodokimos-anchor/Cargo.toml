@@ -20,6 +20,10 @@ serde = { workspace = true, features = ["derive", "alloc"] }
 serde_json = { workspace = true, features = ["alloc"] }
 # Hex encoding for proof bytes
 hex = { workspace = true }
+# Error handling
+thiserror = { workspace = true }
+# HTTP client for OTS calendar submission
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 # Core types
 apodokimos-core = { path = "../apodokimos-core", version = "0.3.0" }
 # Log types (SignedTreeHead)

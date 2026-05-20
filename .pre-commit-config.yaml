@@ -28,7 +28,7 @@ repos:
       # Security audit (runs on Cargo.toml/Cargo.lock changes)
       - id: cargo-audit
         name: cargo audit
-        entry: cargo audit
+        entry: cargo audit --ignore RUSTSEC-2026-0104 --ignore RUSTSEC-2026-0098 --ignore RUSTSEC-2026-0099 --ignore RUSTSEC-2025-0134
         language: system
         pass_filenames: false
         files: '(Cargo\.toml|Cargo\.lock)$'

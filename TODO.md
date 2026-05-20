@@ -231,16 +231,16 @@ SemVer milestones marked as `### vX.Y.Z`.
   - [x] RI-09d — Add `tokio` for async anchoring driver
   - [x] RI-09e — Add `serde_json` for proof serialization
   - [x] RI-09f — Test build with `cargo build --release`
-- [ ] RI-10 — Implement `Anchor::batch(sths: &[SignedTreeHead]) -> Result<OtsProof>`
-  - [ ] RI-10a — Define `OtsProof` struct: timestamp, calendar_url, commitment, serialized OTS proof bytes
-  - [ ] RI-10b — Implement canonical hashing of STH: sha2-256(sth.root || sth.tree_size)
-  - [ ] RI-10c — Implement batch commitment: merkle-hash multiple STH hashes into a single commitment
-  - [ ] RI-10d — Submit commitment to OTS calendar server (HTTP POST to calendar endpoint)
-  - [ ] RI-10e — Parse OTS response: extract timestamp proof bytes
-  - [ ] RI-10f — Serialize proof to JSON and return
-  - [ ] RI-10g — Error handling: network timeout, calendar unavailable, invalid response format
-  - [ ] RI-10h — Unit test: batch 3 STHs, verify proof contains all 3 commitments
-  - [ ] RI-10i — Test: large batch (100 STHs) completes within 10s
+- [x] RI-10 — Implement `Anchor::batch(sths: &[SignedTreeHead]) -> Result<OtsProof>`
+  - [x] RI-10a — Define `OtsProof` struct: timestamp, calendar_url, commitment, serialized OTS proof bytes
+  - [x] RI-10b — Implement canonical hashing of STH: sha2-256(sth.root || sth.tree_size)
+  - [x] RI-10c — Implement batch commitment: merkle-hash multiple STH hashes into a single commitment
+  - [x] RI-10d — Submit commitment to OTS calendar server (HTTP POST to calendar endpoint)
+  - [x] RI-10e — Parse OTS response: extract timestamp proof bytes
+  - [x] RI-10f — Serialize proof to JSON and return
+  - [x] RI-10g — Error handling: network timeout, calendar unavailable, invalid response format
+  - [x] RI-10h — Unit test: batch 3 STHs, verify proof contains all 3 commitments
+  - [x] RI-10i — Test: large batch (100 STHs) completes within 10s
 - [ ] RI-11 — Implement `Anchor::verify(proof: &OtsProof, bitcoin_node) -> Result<BlockHeight>`
   - [ ] RI-11a — Parse OTS proof from JSON bytes
   - [ ] RI-11b — Extract timestamp and Bitcoin block height from OTS response

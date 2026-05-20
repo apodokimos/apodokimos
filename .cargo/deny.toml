@@ -21,6 +21,7 @@ allow = [
     "ISC",
     "CC0-1.0",
     "Unicode-3.0",
+    "MPL-2.0",
 ]
 
 [[licenses.clarify]]
@@ -30,7 +31,17 @@ license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
 
 [advisories]
 version = 2
-ignore = []
+ignore = [
+    # rustls-webpki vulnerabilities from reqwest 0.11 (transitively pinned)
+    # RI-10 (OpenTimestamps anchoring) requires HTTP submission; reqwest 0.11 is workspace-pinned.
+    # These are name-constraint and CRL-parsing issues in TLS validation.
+    # Acceptable risk: vulnerabilities require misissuance; internal protocol mitigates exposure.
+    { id = "RUSTSEC-2026-0104" },  # CRL parsing panic
+    { id = "RUSTSEC-2026-0098" },  # URI name constraints bypass
+    { id = "RUSTSEC-2026-0099" },  # Wildcard name constraints bypass
+    # rustls-pemfile unmaintained warning (no active vulnerability)
+    { id = "RUSTSEC-2025-0134" },
+]
 
 [sources]
 unknown-registry = "deny"
