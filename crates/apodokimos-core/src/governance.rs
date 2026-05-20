@@ -336,12 +336,14 @@ struct CanonicalGovernanceAction {
 mod tests {
     use super::*;
     use ed25519_dalek::{Signer, SigningKey};
-    use rand::RngCore;
+    use rand::rngs::StdRng;
+    use rand::{RngExt, SeedableRng};
 
     fn create_test_signer(did: &str) -> (GovernanceSigner, SigningKey) {
         // Generate random 32 bytes for secret key
         let mut secret_key = [0u8; 32];
-        rand::thread_rng().fill_bytes(&mut secret_key);
+        let mut rng = StdRng::seed_from_u64(42);
+        rng.fill(&mut secret_key);
         let signing_key = SigningKey::from_bytes(&secret_key);
         let public_key = hex::encode(signing_key.verifying_key().to_bytes());
 
