@@ -165,3 +165,9 @@ cargo deny check
 4. **Whitepaper is the source of truth.** If code and whitepaper conflict, whitepaper wins. Cite the relevant section (e.g., "wp-v0.2 §3.2") in code comments explaining why a choice was made.
 
 5. **AGPL-3.0 is by design.** Any hosted fork must remain open. This is protocol-capture resistance, not conventional OSS licensing. When linking apodokimos-core, downstream code must comply with AGPL-3.0.
+
+## Commit and Documentation Conventions
+
+**Commit messages:** Do not include `Co-Authored-By:` trailers. Commit attribution stays with the human author (tracked in git config). Trailers add noise without meaningful authorship information.
+
+**Plans.md content:** All content must be in English — headers, task descriptions, status markers. No Japanese characters or non-ASCII status markers (use `cc:done` instead of `cc:完了`, `cc:wip` instead of `cc:WIP`). This ensures consistency across tracked files and harness tooling compatibility.
