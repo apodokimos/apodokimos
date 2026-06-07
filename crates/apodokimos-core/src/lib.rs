@@ -21,7 +21,7 @@ mod version_doi;
 mod voting;
 mod weight;
 
-pub use claim::{Attestation, AttestationVerdict, Claim, ClaimId, ClaimType};
+pub use claim::{Attestation, AttestationVerdict, Claim, ClaimHash, ClaimId, ClaimType};
 pub use error::ApodokimosError;
 pub use field::{ClinicalMedicine, FieldSchema};
 pub use governance::{

@@ -10,7 +10,7 @@ Phase 2: Core Types and Log Implementation
 
 **BLOCKING — Must fix before public API release:**
 
-- [ ] **D1: Fix `ClaimHash` API documentation** — ARCHITECTURE.md and CLAUDE.md document `ClaimHash::compute(&Claim)` but actual API is `compute_claim_hash()` free function. Update docs to match implementation or refactor code to match docs.
+- [x] **D1: Fix `ClaimHash` API documentation** — Implemented `ClaimHash` struct with `compute(content: &[u8]) -> ClaimId` method to match documentation. Updated ARCHITECTURE.md and CLAUDE.md to reflect actual API. Exported ClaimHash from lib.rs.
   - Files: ARCHITECTURE.md, CLAUDE.md, crates/apodokimos-core/src/lib.rs
   - Impact: API contract broken; consumers following docs will fail to compile
 

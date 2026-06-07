@@ -203,6 +203,35 @@ impl ClaimContent {
     }
 }
 
+/// Claim hash computation and verification (wp-v0.2 §3.2)
+///
+/// Provides deterministic blake3 hashing of canonical claim content.
+/// Essential for distributed claim identity across implementations.
+#[derive(Debug, Clone, Copy)]
+pub struct ClaimHash;
+
+impl ClaimHash {
+    /// Compute blake3 hash of canonical claim content
+    ///
+    /// # Arguments
+    /// * `content` - Raw canonical JSON bytes of claim content
+    ///
+    /// # Returns
+    /// Blake3 hash as 32-byte ClaimId
+    ///
+    /// # Example
+    /// ```
+    /// use apodokimos_core::ClaimHash;
+    ///
+    /// let content = br#"{"claim":"test","type":"PrimaryClaim"}"#;
+    /// let id = ClaimHash::compute(content);
+    /// assert_eq!(id.as_bytes().len(), 32);
+    /// ```
+    pub fn compute(content: &[u8]) -> ClaimId {
+        compute_claim_hash(content)
+    }
+}
+
 impl Claim {
     /// Create a new claim with computed ID (wp-v0.2 default Version DOI)
     pub fn new(

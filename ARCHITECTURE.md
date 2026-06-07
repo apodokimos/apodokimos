@@ -171,7 +171,7 @@ The foundation crate. Defines types and pure functions used by all other crates.
 - `VersionDOI` — newtype, validated DOI string per §1.6
 
 **Key functions:**
-- `ClaimHash::compute(&Claim) -> ClaimId` — blake3 of canonical JSON
+- `ClaimHash::compute(content: &[u8]) -> ClaimId` — blake3 of canonical claim JSON bytes (wp-v0.2 §3.2)
 - `WeightFunction::compute(...)` — implements W = R × D̃ × S × (1 + γO) × δ per wp-v0.2 §3, with Laplace smoothing, log-normalized D̃, multiplicative O bonus, and explicit δ
 - `propagate_retraction(...)` — δ-based cascade per wp-v0.2 §5.2
 

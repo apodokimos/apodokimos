@@ -158,7 +158,7 @@ cargo deny check
 
 1. **no_std compatibility matters for `apodokimos-core`** — it may eventually run on embedded systems or WASM. Use `alloc`-gated features where heap is needed.
 
-2. **Canonical serialization is critical.** `ClaimHash::compute()` in core must produce bit-identical hashes across implementations and versions. Test across multiple invocations.
+2. **Canonical serialization is critical.** `ClaimHash::compute(canonical_json_bytes)` must produce bit-identical hashes across implementations and versions. Both the serialization format and hash function are deterministic; test across multiple invocations and ensure canonical_serialize is portable.
 
 3. **Spec-version coherence is non-negotiable.** Any new claim or attestation type must carry the `spec_version_doi` field, binding it to the whitepaper version. No retroactive spec changes; only forward-compatible additions with new versions.
 

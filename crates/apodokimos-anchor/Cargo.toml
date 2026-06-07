@@ -34,7 +34,5 @@ default = ["std"]
 std = [
     "serde/std",
     "serde_json/std",
-    "sha2/std",
-
     "apodokimos-core/std",
 ]
