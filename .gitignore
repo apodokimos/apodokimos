@@ -104,3 +104,5 @@ target/doc/
 # Agents and memory
 .claude/
 .harness-mem/
+hooks/
+.claude-plugin/

@@ -1,0 +1,21 @@
+[project]
+name = "apodokimos"
+description = "Decentralized protocol for measuring scientific claim quality"
+type = "rust"
+version = "0.3.0"
+
+[build]
+target = "x86_64-unknown-linux-gnu"
+wasm_target = "wasm32-unknown-unknown"
+
+[test]
+command = "cargo"
+args = ["test-all"]
+
+[lint]
+command = "cargo"
+args = ["lint"]
+
+[check]
+command = "cargo"
+args = ["check-all"]
