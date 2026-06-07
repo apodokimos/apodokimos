@@ -1,6 +1,6 @@
 //! Claim and attestation types (P-01, P-02)
 
-use crate::{ApodokimosError, VersionDOI, canonical_serialize, compute_claim_hash};
+use crate::{ApodokimosError, VersionDOI, compute_claim_hash};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -196,10 +196,12 @@ pub struct ClaimContent {
 }
 
 impl ClaimContent {
-    /// Compute hash of this content's canonical JSON serialization
+    /// Compute blake3 hash of canonical claim JSON content
+    ///
+    /// Hashes the raw canonical JSON bytes directly (per wp-v0.2 §3.2).
+    /// The canonical JSON IS the content; no wrapper serialization.
     pub fn compute_hash(&self) -> Result<ClaimId, ApodokimosError> {
-        let serialized = canonical_serialize(self)?;
-        Ok(compute_claim_hash(&serialized))
+        Ok(compute_claim_hash(self.canonical_json.as_bytes()))
     }
 }
 
@@ -225,7 +227,14 @@ impl ClaimHash {
     ///
     /// let content = br#"{"claim":"test","type":"PrimaryClaim"}"#;
     /// let id = ClaimHash::compute(content);
-    /// assert_eq!(id.as_bytes().len(), 32);
+    /// // Determinism: same input always produces same output
+    /// let id2 = ClaimHash::compute(content);
+    /// assert_eq!(id.as_bytes(), id2.as_bytes());
+    /// // Golden value: pinned for cross-implementation verification (wp-v0.2 §3.2)
+    /// assert_eq!(
+    ///     id.to_hex(),
+    ///     "c21acf8ec1c79c03fb89ca23b27ee4eb0fe7ba95e7c1c0c12efc2be9fa7e9f33"
+    /// );
     /// ```
     pub fn compute(content: &[u8]) -> ClaimId {
         compute_claim_hash(content)

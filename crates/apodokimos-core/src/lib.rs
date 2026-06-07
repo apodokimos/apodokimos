@@ -34,8 +34,10 @@ pub use weight::{AffectedClaim, ClaimWeight, GraphSnapshot, OFactorSource, Weigh
 
 use blake3::Hasher;
 
-/// Compute blake3 hash of canonical claim content
-pub fn compute_claim_hash(content: &[u8]) -> ClaimId {
+/// Compute blake3 hash of canonical claim content (internal helper)
+///
+/// Use `ClaimHash::compute()` for the public API.
+pub(crate) fn compute_claim_hash(content: &[u8]) -> ClaimId {
     let mut hasher = Hasher::new();
     hasher.update(content);
     ClaimId::from_bytes(hasher.finalize().into())
