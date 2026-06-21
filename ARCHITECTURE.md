@@ -90,10 +90,10 @@ apodokimos/
 │
 ├── apodokimos-log/           # AGPL-3.0 | Rust  -- NEW IN v0.2
 │   ├── src/
-│   │   ├── client.rs         # Submit/fetch entries to/from transparency log
-│   │   ├── inclusion.rs      # Inclusion proof verification
-│   │   ├── consistency.rs    # Consistency proof verification (no rewrite)
-│   │   └── witness.rs        # Witness co-signature verification (split-view defense)
+│   │   ├── client.rs         # LogClient: submit entries, verify inclusion/consistency/witnesses (RI-03 to RI-06)
+│   │   ├── merkle.rs         # RFC 6962 Merkle tree operations (internal)
+│   │   ├── types.rs          # InclusionProof, SignedEntry, SignedTreeHead, WitnessSignature types
+│   │   └── error.rs          # LogError types
 │   └── Cargo.toml
 │
 ├── apodokimos-anchor/        # AGPL-3.0 | Rust  -- NEW IN v0.2
