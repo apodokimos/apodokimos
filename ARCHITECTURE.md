@@ -90,10 +90,11 @@ apodokimos/
 │
 ├── apodokimos-log/           # AGPL-3.0 | Rust  -- NEW IN v0.2
 │   ├── src/
-│   │   ├── client.rs         # LogClient: submit entries, verify inclusion/consistency/witnesses (RI-03 to RI-06)
-│   │   ├── merkle.rs         # RFC 6962 Merkle tree operations (internal)
-│   │   ├── types.rs          # InclusionProof, SignedEntry, SignedTreeHead, WitnessSignature types
-│   │   └── error.rs          # LogError types
+│   │   ├── lib.rs            # Public API re-exports (LogClient, LogError, proof/entry/header types)
+│   │   ├── client.rs         # LogClient: submit (RI-03), verify inclusion/consistency/witnesses (RI-04 to RI-06), current_sth()
+│   │   ├── merkle.rs         # RFC 6962 Merkle tree: leaf/node hashing, root computation, path construction, inclusion verification (internal)
+│   │   ├── types.rs          # InclusionProof, SignedEntry, SignedTreeHead, WitnessSignature (public types)
+│   │   └── error.rs          # LogError enum (public error type)
 │   └── Cargo.toml
 │
 ├── apodokimos-anchor/        # AGPL-3.0 | Rust  -- NEW IN v0.2
