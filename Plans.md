@@ -14,9 +14,10 @@ Phase 2: Core Types and Log Implementation
   - Files: ARCHITECTURE.md, CLAUDE.md, crates/apodokimos-core/src/lib.rs
   - Impact: API contract broken; consumers following docs will fail to compile
 
-- [ ] **D2: Remove phantom modules from `apodokimos-log` documentation** — ARCHITECTURE.md and CLAUDE.md list non-existent files (`inclusion.rs`, `consistency.rs`, `witness.rs`). All logic is in `client.rs`. Update documentation to match actual module structure.
+- [x] **D2: Remove phantom modules from `apodokimos-log` documentation** — ARCHITECTURE.md and CLAUDE.md list non-existent files (`inclusion.rs`, `consistency.rs`, `witness.rs`). All logic is in `client.rs`. Update documentation to match actual module structure.
   - Files: ARCHITECTURE.md, CLAUDE.md, crates/apodokimos-log/src/
   - Impact: Documentation navigation broken; misleads maintainers
+  - Completed: [186b5f9] (includes review improvements: enhanced descriptions, grammar fixes)
 
 - [ ] **D3: Fix missing `attestation.rs` module documentation** — Documented as standalone module; actually in `claim.rs`. Update ARCHITECTURE.md and CLAUDE.md.
   - Files: ARCHITECTURE.md, CLAUDE.md, crates/apodokimos-core/src/claim.rs
