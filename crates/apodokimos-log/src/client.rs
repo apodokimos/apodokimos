@@ -108,36 +108,58 @@ impl LogClient {
     }
 
     /// RI-06: Verifies witness co-signatures over a Signed Tree Head.
+    /// Verify that at least `threshold` witnesses have valid signatures on the STH.
+    ///
+    /// Implements Byzantine fault-tolerant split-view defense: with k-of-n valid witnesses,
+    /// an attacker must compromise at least k independent witnesses to convince a client
+    /// of a different log state. This prevents split-view attacks where the log operator
+    /// shows different STHs to different clients.
+    ///
+    /// # Arguments
+    /// - `threshold`: minimum number of valid signatures required (must be > 0 and <= witnesses.len())
+    ///
+    /// # Returns
+    /// true if at least `threshold` witnesses have valid signatures; false otherwise (including
+    /// when threshold == 0 or threshold > len(witnesses)).
     pub fn verify_witness_signatures(
         &self,
         sth: &SignedTreeHead,
         witnesses: &[WitnessSignature],
+        threshold: usize,
     ) -> bool {
+        if threshold == 0 || threshold > witnesses.len() {
+            return false;
+        }
+
         let message = sth.signing_bytes();
+        let mut valid_count = 0;
 
         for witness in witnesses {
             let pk_bytes = match decode_key32(&witness.public_key) {
                 Ok(v) => v,
-                Err(_) => return false,
+                Err(_) => continue,
             };
             let verifying_key = match VerifyingKey::from_bytes(&pk_bytes) {
                 Ok(vk) => vk,
-                Err(_) => return false,
+                Err(_) => continue,
             };
             let sig_bytes = match hex::decode(&witness.signature) {
                 Ok(v) => v,
-                Err(_) => return false,
+                Err(_) => continue,
             };
             let signature = match Signature::from_slice(&sig_bytes) {
                 Ok(s) => s,
-                Err(_) => return false,
+                Err(_) => continue,
             };
-            if verifying_key.verify(&message, &signature).is_err() {
-                return false;
+            if verifying_key.verify(&message, &signature).is_ok() {
+                valid_count += 1;
+                if valid_count >= threshold {
+                    return true;
+                }
             }
         }
 
-        true
+        false
     }
 
     /// Returns the current STH view of this local log.
@@ -234,6 +256,91 @@ mod tests {
             signature: hex::encode(sig.to_bytes()),
         }];
 
-        assert!(client.verify_witness_signatures(&sth, &witnesses));
+        assert!(client.verify_witness_signatures(&sth, &witnesses, 1));
+    }
+
+    #[test]
+    fn verify_witness_signatures_k_of_n() {
+        let client = LogClient::new("apodokimos-local", "00");
+        let sth = client.current_sth();
+        let message = sth.signing_bytes();
+
+        let key1 = keypair();
+        let key2 = keypair();
+        let key3 = keypair();
+
+        let sig1 = key1.sign(&message);
+        let sig2 = key2.sign(&message);
+        let sig3 = key3.sign(&message);
+
+        let witnesses = vec![
+            WitnessSignature {
+                witness_id: "did:apodokimos:witness:1".to_string(),
+                public_key: hex::encode(key1.verifying_key().to_bytes()),
+                signature: hex::encode(sig1.to_bytes()),
+            },
+            WitnessSignature {
+                witness_id: "did:apodokimos:witness:2".to_string(),
+                public_key: hex::encode(key2.verifying_key().to_bytes()),
+                signature: hex::encode(sig2.to_bytes()),
+            },
+            WitnessSignature {
+                witness_id: "did:apodokimos:witness:3".to_string(),
+                public_key: hex::encode(key3.verifying_key().to_bytes()),
+                signature: hex::encode(sig3.to_bytes()),
+            },
+        ];
+
+        assert!(client.verify_witness_signatures(&sth, &witnesses, 1));
+        assert!(client.verify_witness_signatures(&sth, &witnesses, 2));
+        assert!(client.verify_witness_signatures(&sth, &witnesses, 3));
+        assert!(!client.verify_witness_signatures(&sth, &witnesses, 4));
+    }
+
+    #[test]
+    fn verify_witness_signatures_partial_valid() {
+        let client = LogClient::new("apodokimos-local", "00");
+        let sth = client.current_sth();
+        let message = sth.signing_bytes();
+
+        let key1 = keypair();
+        let key2 = keypair();
+
+        let sig1 = key1.sign(&message);
+
+        let witnesses = vec![
+            WitnessSignature {
+                witness_id: "did:apodokimos:witness:1".to_string(),
+                public_key: hex::encode(key1.verifying_key().to_bytes()),
+                signature: hex::encode(sig1.to_bytes()),
+            },
+            WitnessSignature {
+                witness_id: "did:apodokimos:witness:2".to_string(),
+                public_key: hex::encode(key2.verifying_key().to_bytes()),
+                signature: "invalid_signature_hex".to_string(),
+            },
+        ];
+
+        assert!(client.verify_witness_signatures(&sth, &witnesses, 1));
+        assert!(!client.verify_witness_signatures(&sth, &witnesses, 2));
+    }
+
+    #[test]
+    fn verify_witness_signatures_threshold_edge_cases() {
+        let client = LogClient::new("apodokimos-local", "00");
+        let sth = client.current_sth();
+
+        let key = keypair();
+        let sig = key.sign(&sth.signing_bytes());
+
+        let witnesses = vec![WitnessSignature {
+            witness_id: "did:apodokimos:witness:1".to_string(),
+            public_key: hex::encode(key.verifying_key().to_bytes()),
+            signature: hex::encode(sig.to_bytes()),
+        }];
+
+        assert!(!client.verify_witness_signatures(&sth, &witnesses, 0));
+        assert!(client.verify_witness_signatures(&sth, &witnesses, 1));
+        assert!(!client.verify_witness_signatures(&sth, &witnesses, 2));
     }
 }

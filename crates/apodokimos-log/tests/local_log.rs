@@ -63,5 +63,5 @@ fn local_log_witness_cosignatures_verify() {
         },
     ];
 
-    assert!(client.verify_witness_signatures(&sth, &witnesses));
+    assert!(client.verify_witness_signatures(&sth, &witnesses, 2));
 }
