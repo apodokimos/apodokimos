@@ -15,7 +15,7 @@ Phase 2: Core Types and Log Implementation
 | D1 | Fix `ClaimHash` API documentation | ARCHITECTURE.md, CLAUDE.md, lib.rs updated; ClaimHash struct with `compute()` method exported; API contract matches whitepaper | - | cc:done [998acac] |
 | D2 | Remove phantom modules from `apodokimos-log` documentation | ARCHITECTURE.md and CLAUDE.md list only `client.rs`, `merkle.rs`, `types.rs`, `error.rs`; no refs to `inclusion.rs`, `consistency.rs`, `witness.rs` | - | cc:done [186b5f9] |
 | D3 | Fix missing `attestation.rs` module documentation | ARCHITECTURE.md and CLAUDE.md correctly identify Attestation types in `claim.rs`; no phantom `attestation.rs` refs remain | D1, D2 | cc:done [275cea25] |
-| D4 | Implement k-of-n threshold in `verify_witness_signatures` | `verify_witness_signatures` accepts `threshold: usize` parameter; validates ≥k of n witnesses valid; split-view defense documented | D3 | cc:TODO |
+| D4 | Implement k-of-n threshold in `verify_witness_signatures` | `verify_witness_signatures` accepts `threshold: usize` parameter; validates ≥k of n witnesses valid; split-view defense documented | D3 | cc:done [d6b7c6d] |
 | D5 | Unify merkle root implementations | `apodokimos-log::merkle::merkle_root` and `apodokimos-anchor::merkle_root` produce identical roots for odd-count trees; shared test suite passes | D4 | cc:TODO |
 | D6 | Implement true canonical serialization | RFC 8785 canonicalization applied; test coverage across serde_json versions; ClaimHash portability verified | D5 | cc:TODO |
 
