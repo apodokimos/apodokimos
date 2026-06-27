@@ -65,7 +65,7 @@ The Apodokimos protocol has 7 architectural layers. Currently implemented:
    - Implements W(c,t) = R × D̃ × S × (1 + γO) × δ weight computation
    - Implements retraction cascade logic per whitepaper §5
    - no_std compatible; AGPL-3.0
-   - Key modules: `claim.rs`, `weight.rs`, `attestation.rs`, `field.rs`, `version_doi.rs`, `voting.rs`, `governance.rs`
+   - Key modules: `claim.rs` (includes Attestation types), `weight.rs`, `field.rs`, `version_doi.rs`, `voting.rs`, `governance.rs`
 
 2. **`apodokimos-log` — Transparency Log** (v0.1.0, in Phase 2)
    - RFC 6962 (Certificate Transparency) style append-only log
@@ -134,7 +134,7 @@ cargo test-all
 ## Common Tasks
 
 **Adding a new type to protocol core:**
-1. Define in appropriate module (`claim.rs`, `attestation.rs`, etc.)
+1. Define in appropriate module (`claim.rs`, `field.rs`, `weight.rs`, etc.)
 2. Implement `Serialize`/`Deserialize` via serde
 3. Add tests with `proptest` for invariants
 4. Run `cargo test-all` to verify no regressions

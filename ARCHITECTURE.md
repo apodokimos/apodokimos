@@ -69,9 +69,8 @@ The state-derivation layer is the conceptual replacement for v0.1's Substrate-pa
 apodokimos/
 ├── apodokimos-core/          # AGPL-3.0 | Rust | no_std compatible
 │   ├── src/
-│   │   ├── claim.rs          # Claim struct (incl. spec_version_doi), ClaimId, ClaimHash
+│   │   ├── claim.rs          # Claim struct (incl. spec_version_doi), ClaimId, ClaimHash, Attestation types
 │   │   ├── weight.rs         # W(c,t) = R × D̃ × S × (1 + γO) × δ  per wp-v0.2 §3
-│   │   ├── attestation.rs    # Attestation types: Supports|Contradicts|Replicates|Refutes|Mentions
 │   │   ├── field.rs          # Field schema, normalization coefficients
 │   │   ├── version_doi.rs    # VersionDOI newtype + parsing/validation
 │   │   └── error.rs
