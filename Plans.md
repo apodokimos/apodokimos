@@ -10,56 +10,33 @@ Phase 2: Core Types and Log Implementation
 
 **BLOCKING — Must fix before public API release:**
 
-- [x] **D1: Fix `ClaimHash` API documentation** — Implemented `ClaimHash` struct with `compute(content: &[u8]) -> ClaimId` method to match documentation. Updated ARCHITECTURE.md and CLAUDE.md to reflect actual API. Exported ClaimHash from lib.rs.
-  - Files: ARCHITECTURE.md, CLAUDE.md, crates/apodokimos-core/src/lib.rs
-  - Impact: API contract broken; consumers following docs will fail to compile
-
-- [x] **D2: Remove phantom modules from `apodokimos-log` documentation** — ARCHITECTURE.md and CLAUDE.md list non-existent files (`inclusion.rs`, `consistency.rs`, `witness.rs`). All logic is in `client.rs`. Update documentation to match actual module structure.
-  - Files: ARCHITECTURE.md, CLAUDE.md, crates/apodokimos-log/src/
-  - Impact: Documentation navigation broken; misleads maintainers
-  - Completed: [186b5f9] (includes review improvements: enhanced descriptions, grammar fixes)
-
-- [ ] **D3: Fix missing `attestation.rs` module documentation** — Documented as standalone module; actually in `claim.rs`. Update ARCHITECTURE.md and CLAUDE.md.
-  - Files: ARCHITECTURE.md, CLAUDE.md, crates/apodokimos-core/src/claim.rs
-  - Impact: Same navigation breakage as D2
-
-- [ ] **D4: Implement k-of-n threshold in `verify_witness_signatures`** — Currently requires all witnesses to be valid; no threshold semantics. Documented as "split-view defense" which implies threshold. Add `threshold: usize` parameter and validate at least k of n witnesses are valid.
-  - Files: crates/apodokimos-log/src/client.rs (line 111–141)
-  - Impact: Correctness gap; split-view defense claim is not implemented
+| Task | Content | DoD | Depends | Status |
+|------|---------|-----|---------|--------|
+| D1 | Fix `ClaimHash` API documentation | ARCHITECTURE.md, CLAUDE.md, lib.rs updated; ClaimHash struct with `compute()` method exported; API contract matches whitepaper | - | cc:done [998acac] |
+| D2 | Remove phantom modules from `apodokimos-log` documentation | ARCHITECTURE.md and CLAUDE.md list only `client.rs`, `merkle.rs`, `types.rs`, `error.rs`; no refs to `inclusion.rs`, `consistency.rs`, `witness.rs` | - | cc:done [186b5f9] |
+| D3 | Fix missing `attestation.rs` module documentation | ARCHITECTURE.md and CLAUDE.md correctly identify Attestation types in `claim.rs`; no phantom `attestation.rs` refs remain | D1, D2 | cc:done [275cea25] |
+| D4 | Implement k-of-n threshold in `verify_witness_signatures` | `verify_witness_signatures` accepts `threshold: usize` parameter; validates ≥k of n witnesses valid; split-view defense documented | D3 | cc:TODO |
+| D5 | Unify merkle root implementations | `apodokimos-log::merkle::merkle_root` and `apodokimos-anchor::merkle_root` produce identical roots for odd-count trees; shared test suite passes | D4 | cc:TODO |
+| D6 | Implement true canonical serialization | RFC 8785 canonicalization applied; test coverage across serde_json versions; ClaimHash portability verified | D5 | cc:TODO |
 
 **RECOMMENDING — Fix before Phase 3 work:**
 
-- [ ] **D5: Unify merkle root implementations** — `apodokimos-log::merkle::merkle_root` (RFC 6962 recursive) and `apodokimos-anchor::merkle_root` (iterative, duplicates last leaf) produce different roots for odd-count trees. Pick canonical implementation, test across versions, import in both crates.
-  - Files: crates/apodokimos-log/src/merkle.rs (line 21), crates/apodokimos-anchor/src/lib.rs (line 149)
-  - Impact: Silent root mismatch if cross-verified; difficult to diagnose
-
-- [ ] **D6: Implement true canonical serialization** — Current `canonical_serialize` uses raw `serde_json::to_vec()` without guarantees. CLAUDE.md calls this critical. Implement RFC 8785 canonicalization or add test coverage across `serde_json` versions.
-  - Files: crates/apodokimos-core/src/lib.rs (line 44–49)
-  - Impact: Hashes may diverge across implementations/versions; breaks claim portability
-
-- [ ] **D7: Document block-time to log-timestamp bridge** — Block-based time model (`Claim.registered: BlockNumber`, weight function uses `block_time_seconds`) is Substrate residue; log-based architecture uses `timestamp_ms` from `SignedTreeHead`. Add TODO or bridge documentation in `weight.rs`.
-  - Files: crates/apodokimos-core/src/weight.rs, crates/apodokimos-core/src/claim.rs
-  - Impact: Phase 3 state derivation will need undocumented bridge
-
-- [ ] **D8: Add `min_sbt_score` to `FieldSchema` trait** — SBT gating (R6, RI-17a) requires reading `min_sbt_score` per field. Trait lacks this method. Add before Phase 3 to avoid breaking `apodokimos-core`.
-  - Files: crates/apodokimos-core/src/field.rs
-  - Impact: Phase 3 cannot implement R6 without breaking change to core trait
+| Task | Content | DoD | Depends | Status |
+|------|---------|-----|---------|--------|
+| D7 | Document block-time to log-timestamp bridge | `weight.rs` documents Claim.registered → SignedTreeHead.timestamp_ms mapping; TODO added for Phase 3 state derivation | D6 | cc:TODO |
+| D8 | Add `min_sbt_score` to `FieldSchema` trait | FieldSchema trait includes `fn min_sbt_score(&self) -> Option<f64>`; R6 gating logic can read per-field thresholds | D7 | cc:TODO |
 
 **OPTIONAL — Fix for code clarity:**
 
-- [ ] **D9: Resolve `ClaimContent` visibility** — Currently `pub use` but `#[doc(hidden)]`. Either make it internal or document it. (low priority)
-  - Files: crates/apodokimos-core/src/lib.rs (line 53)
-
-- [ ] **D10: Update `registered` field comment** — Says "block number"; misleading in log-based model. Clarify what "registered" means.
-  - Files: crates/apodokimos-core/src/claim.rs (line 174)
-
-- [ ] **D11: Fix `VersionDOI::wp_v0_2()` DOI** — Returns `"doi:10.5281/apodokimos.wp-v0.2"` (placeholder); should be `"doi:10.5281/zenodo.19763292"` (actual Zenodo DOI).
-  - Files: crates/apodokimos-core/src/version_doi.rs (line 33)
-  - Impact: Claims carry wrong archival identifier
+| Task | Content | DoD | Depends | Status |
+|------|---------|-----|---------|--------|
+| D9 | Resolve `ClaimContent` visibility | Either remove `pub use` + `#[doc(hidden)]` or document intended API surface | D8 | cc:TODO |
+| D10 | Update `registered` field comment | `Claim.registered` comment clarifies meaning in log-based model (not block number) | D9 | cc:TODO |
+| D11 | Fix `VersionDOI::wp_v0_2()` DOI | `VersionDOI::wp_v0_2()` returns actual Zenodo DOI `"doi:10.5281/zenodo.19763292"` | D10 | cc:TODO |
 
 ## Completed
 
-<!-- Archive completed tasks here -->
+<!-- Archive completed tasks here after phase completion -->
 
 ## Notes
 
